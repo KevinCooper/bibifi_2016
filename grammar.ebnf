@@ -1,12 +1,25 @@
+LOWER ::= a|b|c|d|e|f|g|h|i|j|k|l|m|n|o|p|q|r|s|t|u|v|w|x|y|z
+UPPER ::= A|B|C|D|E|F|G|H|I|J|K|L|M|N|O|P|Q|R|S|T|U|V|W|X|Y|Z
+DIGIT ::= 0|1|2|3|4|5|6|7|8|9
+//SPECIAL ::= -| |"|#|&|’|(|)|*|+|,|.|/|:|;|<|=|>
+SPECIAL ::= _| |,|;|\|.|?|!|-
+CHARACTER ::= LOWER | UPPER | DIGIT | SPECIAL
+CHARACTERS ::= | CHARACTER CHARACTER
+QUOTE ::= "
+
 //No more than 65,535 characters surrounded by double quotes - "[A-Za-z0-9_ ,;\.?!-]*"
-S_VAL ::= 
+S_VAL ::= QUOTE CHARACTERS QUOTE
+
+START = UPPER | LOWER
+REST = UPPER | LOWER | DIGIT | _ 
+RESTS = | REST REST
 
 //No more than 255 characters - [A-Za-z][A-Za-z0-9_]*
-P_VAL ::= 
-X_VAL ::= 
-Q_VAL ::= 
-R_VAL ::= 
-Y_VAL ::=
+P_VAL ::= START | START RESTS
+X_VAL ::= START | START RESTS
+Q_VAL ::= START | START RESTS
+R_VAL ::= START | START RESTS
+Y_VAL ::= START | START RESTS
 
 NEWLINE ::= "\n"
 
