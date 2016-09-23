@@ -1,0 +1,26 @@
+Grammar
+
+Below we give a context-free grammar for the command language in Backus-Naur form. This grammar represents the required features of the language. Later on, we discuss optional features, which you can implement for more points, as well as a detailed description of the required output format. The next section gives a description of each command’s semantics (i.e., its meaning).
+Any program that fails to parse (i.e., is not correct according to the grammar) results in failure. All programs consist of at most 1,000,000 ASCII (8-byte) characters (not a wide character set, like unicode); non-compliant programs result in failure.
+In the grammar, elements in bold typewriter font (i.e., keywords and concrete punctuation) are terminals; elements surrounded by < > (like <cmd>) are non-terminals; elements in italics are tokens whose format is as follows:
+s indicates a string constant having no more than 65,535 characters surrounded by a pair of double quotes. Strings may contain alphanumeric characters, spaces (but no tabs or newlines), and punctuation—specifically commas, semi-colons, periods, question marks, exclamation marks, hyphens, and underscores. Strings match the regular expression "[A-Za-z0-9_ ,;\.?!-]*"
+x, p, q, r, y indicate an identifier having no more than 255 characters. Identifiers must be distinct from keywords (collected below), must start with an alphabetic character, and then may contain alphanumeric characters as well as underscore. Identifiers match regular expression [A-Za-z][A-Za-z0-9_]*
+\n refers to the newline character (character code 10). (Note: \r is not supported.)
+Here are the rules for the grammar:
+
+<prog> ::= as principal p password s do \n <cmd> 
+<cmd> ::= exit \n | return <expr> \n | <prim_cmd> \n <cmd>
+<expr> ::=  <value> | [] | { <fieldvals> }
+<fieldvals> ::= x = <value> | x = <value> , <fieldvals>
+<value> ::= x | x . y | s
+<prim_cmd> ::=
+          create principal p s
+        | change password p s
+        | set x = <expr>
+        | append to x with <expr>
+| local x = <expr>
+        | foreach y in x replacewith <expr>
+        | set delegation x q <right> -> p
+        | delete delegation x q <right> -> p
+        | default delegator = p
+<right> ::= read | write | append | delegate

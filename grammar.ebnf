@@ -1,0 +1,32 @@
+//No more than 65,535 characters surrounded by double quotes - "[A-Za-z0-9_ ,;\.?!-]*"
+S_VAL ::= 
+
+//No more than 255 characters - [A-Za-z][A-Za-z0-9_]*
+P_VAL ::= 
+X_VAL ::= 
+Q_VAL ::= 
+R_VAL ::= 
+Y_VAL ::=
+
+NEWLINE ::= "\n"
+
+//Items above this line are tokens 
+//Items in quotes are terminals
+//All caps items definitions below this are non-terminals
+
+PROG ::= "as" "principal" P_VAL "password" S_VAL "do" NEWLINE CMD 
+CMD ::= "exit" NEWLINE | "return" EXPR NEWLINE | PRIMCMD NEWLINE CMD
+EXPR ::=  VALUE | "[]" | "{" FIELDVALS "}"
+FIELDVALS ::= X_VAL "=" VALUE | X_VAL "=" VALUE "," FIELDVALS
+VALUE ::= X_VAL | X_VAL "." Y_VAL | S_VAL
+PRIMCMD ::=
+          "create" "principal" P_VAL S_VAL
+        | "change" "password" P_VAL S_VAL
+        | "set" X_VAL "=" EXPR
+        | "append" "to" X_VAL "with" EXPR
+| "local" X_VAL = EXPR
+        | "foreach" Y_VAL "in" X_VAL "replacewith" EXPR
+        | "set" "delegation" X_VAL Q_VAL RIGHT "->" P_VAL
+        | "delete" "delegation" X_VAL Q_VAL RIGHT "->" P_VAL
+        | "default" "delegator" "=" P_VAL
+RIGHT ::= "read" | "write" | "append" | "delegate"
