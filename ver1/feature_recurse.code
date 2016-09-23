@@ -1,0 +1,5 @@
+
+as principal admin password "admin" do
+   set x = { f1 = "hello", f2 = "there" }
+   set y = let z = concat(x.f1, " ") in concat(z, x.f2)
+   return y
