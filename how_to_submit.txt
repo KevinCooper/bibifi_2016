@@ -1,0 +1,17 @@
+Build-it Round Submission
+
+Each build-it team should initialize a git repository on either github or bitbucket or gitlab and share it
+with the bibifi user on those services. Create a directory named build in the top-level directory of this 
+repository and commit your code into that folder. Your submission will be scored after every push to the repository. 
+(Beware making your repository public, or other contestants might be able to see it!)
+
+To score a submission, an automated system will first invoke make in the build directory of your submission. The only requirement 
+on make is that it must function without internet connectivity, and that it must return within ten minutes. Moreover, it must be 
+the case that your software is actually built, through initiation of make, from source (not including libraries you might use). 
+Submitting binaries (only) is not acceptable.
+
+Once make finishes, server should be an executable file within the build directory. An automated system will invoke them with a 
+variety of options and measure their responses. The executables must be able to be run from any working directory. If your 
+executables are bash scripts, you may find the following resource helpful.
+
+http://stackoverflow.com/questions/59895/can-a-bash-script-tell-what-directory-its-stored-in&sa=D&ust=1474570040632000&usg=AFQjCNFYUg-jSm4tA9NZj-1uUasf_FXTiA
