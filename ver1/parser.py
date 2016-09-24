@@ -8,7 +8,7 @@ from langlex import tokens
 start = 'prog'
 
 def p_prog(p):
-    'prog : AS PRINCIPAL ID PASSWORD USER DO cmd'
+    'prog : AS PRINCIPAL ID PASSWORD USER DO cmd END'
     pass
 
 def p_cmd(p):

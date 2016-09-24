@@ -40,6 +40,7 @@ tokens = (
    'RBRACE',
    'COMMA',
    'PERIOD',
+   'END'
 )
 
 tokens = list(tokens) + list(reserved.values())
@@ -50,9 +51,10 @@ t_RBRACK  = r'\]'
 t_LBRACE  = r'{'
 t_RBRACE  = r'}'
 t_ARROW   = r'->'
-t_EQUAL  = r'='
+t_EQUAL   = r'='
 t_COMMA   = r','
 t_PERIOD  = r'\.'
+t_END     = r'\*\*\*'
 
 def t_ID(t):
     r'[A-Za-z][A-Za-z0-9_]*'
@@ -73,7 +75,6 @@ def t_COMMENT(t):
 def t_newline(t):
     r'\n+'
     t.lexer.lineno += len(t.value)
-    print("new line")
 
 # A string containing ignored characters (spaces and tabs)
 t_ignore  = ' \t'
