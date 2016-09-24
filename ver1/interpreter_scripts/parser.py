@@ -4,7 +4,9 @@ import ply.yacc as yacc
 # Get the token map from the lexer.  This is required.
 from .langlex import tokens
 from .langlex import MyLexer
-from .ast import ProgNode, CmdNode, PrimCmdBlock, PrimCmd, ExitNode, ReturnNode, ExprNode, FieldValue
+from .ast import ProgNode, CreateCmd, CmdNode, PrimCmdBlock, PrimCmd
+from .ast import ExitNode, ReturnNode, ExprNode, FieldValue
+from .ast import ChangeCmd, SetCmd, AppendCmd, SetDel, DelDel
 start = 'prog'
 
 def p_prog(p):
@@ -17,13 +19,14 @@ def p_cmd(p):
            | RETURN expr
            | primcmd cmd
     '''
-    if(str(p[1]).lower() == "exit"):
+    if("exit" in str(p[1])):
         p[0] = ExitNode()
-    elif(str(p[1]).lower() == "return"):
+    elif("return" in str(p[1])):
         p[0] = ReturnNode(p[2])
-    elif(type(p[1]) == PrimCmd):
+    elif(issubclass(type(p[1]),PrimCmd)):
         p[0] = PrimCmdBlock(p[1], p[2])
     else:
+        print(p[0], p[1], p[2])
         raise ValueError
 
 def p_expr(p):
@@ -72,7 +75,27 @@ def p_primcmd(p):
                 | DELETE DELEGATION tgt ID right ARROW ID
                 | DEFAULT DELEGATOR EQUAL ID
     '''
-    p[0] = PrimCmd()
+    if("create" in str(p[1])):
+        p[0] = CreateCmd(str(p[3]), str(p[4]))
+    elif("change" in str(p[1])):
+        p[0] = ChangeCmd(str(p[3]), str(p[4]))
+    elif("set" in str(p[1]) and "=" in str(p[3])):
+        p[0] = SetCmd(str(p[2]), p[4])
+    elif("append" in str(p[1])):
+        p[0] = AppendCmd(str(p[3]), p[5])
+    elif("local" in str(p[1])):
+        p[0] = LocalCmd(str(p[2]), p[4])
+    elif("foreach" in str(p[1])):
+        p[0] = PrimCmd()
+    elif("set" in str(p[1])):
+        p[0] = SetDel(str(p[3]), str(p[4]), p[5], str(p[7]))
+    elif("delete" in str(p[1])):
+        p[0] = DelDel(str(p[3]), str(p[4]), p[5], str(p[7]))
+    elif("default" in str(p[1])):
+        p[0] = PrimCmd()
+    else:
+        raise ValueError
+    
 
 def p_right(p):
     ''' right : READ

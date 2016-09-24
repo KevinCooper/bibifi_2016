@@ -1,5 +1,5 @@
-import module_bullshit
-from module_bullshit.parser import LanguageParser
+import interpreter_scripts
+from interpreter_scripts.parser import LanguageParser
 
 
 my_parser = LanguageParser()
