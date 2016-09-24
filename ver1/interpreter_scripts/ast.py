@@ -60,6 +60,7 @@ class FieldValue(Node):
 
 
 class ExprNode(Node):
+    #TODO: Better fix the str and init methods.  Maybe have a type field?
     def __init__(self, temp):
         super()
         if(isinstance(temp, str)):
@@ -70,7 +71,12 @@ class ExprNode(Node):
             self.temp = temp #TODO: Maybe create a dict() here?
 
     def __str__(self):
-        return str(self.temp)
+        if(isinstance(self.temp, str)):
+            return str(self.temp)
+        elif(isinstance(self.temp, list)):
+            return str(self.temp)
+        elif(isinstance(self.temp, FieldValue)):
+            return "{" + str(self.temp) + "}"
 
 
 class ReturnNode(CmdNode):
@@ -157,6 +163,26 @@ class DelDel(PrimCmd):
     def __str__(self):
         return "\t<DelDel>: {0} {1} {2} -> {3}".format(self.tgt, self.src_id,
                                                        self.right, self.dst_id)
+
+class DefaultCmd(PrimCmd):
+    def __init__(self, x):
+        super()
+        self.x = x
+
+    def __str__(self):
+        return "\t<DefaultCmd>: {0} {1}".format(self.x)
+
+
+class ForEachCmd(PrimCmd):
+    def __init__(self, y,  x, expr: ExprNode):
+        super()
+        self.y = y
+        self.x = x
+        self.expr = expr
+
+    def __str__(self):
+        return "\t<ForEachCmd>: {0} in {1} replacewith {2}".format(self.y, self.x, str(self.expr))
+
 
 class PrimCmdBlock(Node):
     def __init__(self, primcmd : PrimCmd, cmd : CmdNode):

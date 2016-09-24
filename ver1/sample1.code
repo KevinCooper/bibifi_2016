@@ -3,3 +3,4 @@ as principal admin password "admin" do
    set msg = "Hi Alice. Good luck in Build-it, Break-it, Fix-it!"
    set delegation msg admin read -> alice
    return "success"
+***

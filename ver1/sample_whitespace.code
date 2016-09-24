@@ -4,3 +4,4 @@ create principal bob "B0BPWxxd"
        set y ={f1=x,f2="field2"}
    set     delegation x admin read-> bob
    return y . f1
+***

@@ -5,3 +5,4 @@ as principal admin password "admin" do
    local names = records
    foreach rec in names replacewith rec.name
    return names
+***

@@ -4,9 +4,9 @@ import ply.yacc as yacc
 # Get the token map from the lexer.  This is required.
 from .langlex import tokens
 from .langlex import MyLexer
-from .ast import ProgNode, CreateCmd, CmdNode, PrimCmdBlock, PrimCmd
+from .ast import ProgNode, CreateCmd, CmdNode, PrimCmdBlock, PrimCmd, LocalCmd
 from .ast import ExitNode, ReturnNode, ExprNode, FieldValue
-from .ast import ChangeCmd, SetCmd, AppendCmd, SetDel, DelDel
+from .ast import ChangeCmd, SetCmd, AppendCmd, SetDel, DelDel, DefaultCmd, ForEachCmd
 start = 'prog'
 
 def p_prog(p):
@@ -86,13 +86,13 @@ def p_primcmd(p):
     elif("local" in str(p[1])):
         p[0] = LocalCmd(str(p[2]), p[4])
     elif("foreach" in str(p[1])):
-        p[0] = PrimCmd()
+        p[0] = ForEachCmd(str(p[2]), str(p[4]), p[6])
     elif("set" in str(p[1])):
         p[0] = SetDel(str(p[3]), str(p[4]), p[5], str(p[7]))
     elif("delete" in str(p[1])):
         p[0] = DelDel(str(p[3]), str(p[4]), p[5], str(p[7]))
     elif("default" in str(p[1])):
-        p[0] = PrimCmd()
+        p[0] = DefaultCmd(str(p[4]))
     else:
         raise ValueError
     
