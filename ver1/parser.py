@@ -4,7 +4,7 @@ import ply.yacc as yacc
 
 # Get the token map from the lexer.  This is required.
 from langlex import tokens
-
+from langlex import MyLexer
 start = 'prog'
 
 def p_prog(p):
@@ -68,11 +68,26 @@ def p_error(p):
         print("Syntax error in input!")
         print(p)
 
+class LanguageParser(object):
+    def __init__(self, lexer=None):
+        if lexer is None:
+            lexer = MyLexer()
+        self.lexer = lexer
+        self.parser = yacc.yacc(start="prog")
+
+    def parse(self, code):
+        self.lexer.input(code)
+        result = self.parser.parse(lexer = self.lexer)
+        #return ast.Module(None, result)
+        return result
 
 
-# Build the parser
-parser = yacc.yacc()
+#my_parser = yacc.yacc()
 
-with open("sample.code", "r") as f:
-    result = parser.parse(f.read())
-    print(result)
+
+if __name__=="__main__":
+    my_parser = LanguageParser()
+    # Build the parser
+    with open("sample.code", "r") as f:
+        result = my_parser.parse(f.read())
+        print(result)

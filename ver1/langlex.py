@@ -87,23 +87,39 @@ def t_error(t):
 # Build the lexer
 lexer = lex.lex()
 
-"""
-# Test it out
-data = '''
-as principal admin password "admin" do
-   create principal alice "alices_password"
-   set msg = "Hi Alice. Good luck in Build-it, Break-it, Fix-it!"
-   set delegation msg admin read -> alice
-   return "success"
-'''
+class MyLexer(object):
+    def __init__(self, debug=0, optimize=0, lextab='lextab', reflags=0):
+        self.lexer = lex.lex(debug=debug, optimize=optimize, lextab=lextab, reflags=reflags)
+        self.token_stream = None
+    def input(self, s):
+        self.lexer.paren_count = 0
+        self.lexer.input(s)
+        self.token_stream = self.lexer
+    def token(self):
+        try:
+            return self.token_stream.next()
+        except StopIteration:
+            return None
 
-# Give the lexer some input
-lexer.input(data)
 
-# Tokenize
-while True:
-    tok = lexer.token()
-    if not tok: 
-        break      # No more input
-    print(tok)
-"""
+if __name__=='__main__':
+    # Test it out
+    data = '''
+    as principal admin password "admin" do
+    create principal alice "alices_password"
+    set msg = "Hi Alice. Good luck in Build-it, Break-it, Fix-it!"
+    set delegation msg admin read -> alice
+    return "success"
+    ***
+    '''
+
+
+    # Give the lexer some input
+    lexer.input(data)
+
+    # Tokenize
+    while True:
+        tok = lexer.token()
+        if not tok: 
+            break      # No more input
+        print(tok)
