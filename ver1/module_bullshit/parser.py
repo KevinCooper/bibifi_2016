@@ -1,29 +1,38 @@
 # Yacc example
-
 import ply.yacc as yacc
 
 # Get the token map from the lexer.  This is required.
-from langlex import tokens
-from langlex import MyLexer
+from .langlex import tokens
+from .langlex import MyLexer
+from .ast import ProgNode, CmdNode, PrimCmd, ExitNode, ReturnNode, ExprNode
 start = 'prog'
 
 def p_prog(p):
     'prog : AS PRINCIPAL ID PASSWORD USER DO cmd END'
-    pass
+    # [0]   [1] [2]      [3] [4]     [5]  [6] [7] [8]
+    p[0] = ProgNode(p[3], p[5], p[7])
 
 def p_cmd(p):
     '''cmd : EXIT
            | RETURN expr
            | primcmd cmd
     '''
-    pass
+    if(str(p[1]).lower() == "exit"):
+        p[0] = ExitNode()
+    elif(str(p[1]).lower() == "return"):
+        p[0] = ReturnNode(p[2])
+    elif(type(p[1]) == PrimCmd):
+        pass
+    else:
+        raise ValueError
 
 def p_expr(p):
     '''expr : value 
             | LBRACK RBRACK
             | LBRACE fieldvals RBRACE 
     '''
-    pass
+    #TODO: 3 checks
+    p[0] = ExprNode()
 
 def p_fieldvals(p):
     ''' fieldvals : ID EQUAL value
@@ -45,17 +54,23 @@ def p_primcmd(p):
                 | APPEND TO ID WITH expr
                 | LOCAL ID EQUAL expr
                 | FOREACH ID IN ID REPLACEWITH expr
-                | SET DELEGATION ID ID right ARROW ID
-                | DELETE DELEGATION ID ID right ARROW ID
+                | SET DELEGATION tgt ID right ARROW ID
+                | DELETE DELEGATION tgt ID right ARROW ID
                 | DEFAULT DELEGATOR EQUAL ID
     '''
-    pass
+    p[0] = PrimCmd()
 
 def p_right(p):
     ''' right : READ
               | WRITE
               | APPEND
               | DELEGATE
+    '''
+    pass
+
+def p_tgt(p):
+    ''' tgt : ALL
+            | ID
     '''
     pass
     

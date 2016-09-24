@@ -1,4 +1,5 @@
-from parser import LanguageParser
+import module_bullshit
+from module_bullshit.parser import LanguageParser
 
 
 my_parser = LanguageParser()
