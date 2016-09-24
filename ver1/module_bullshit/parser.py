@@ -4,7 +4,7 @@ import ply.yacc as yacc
 # Get the token map from the lexer.  This is required.
 from .langlex import tokens
 from .langlex import MyLexer
-from .ast import ProgNode, CmdNode, PrimCmd, ExitNode, ReturnNode, ExprNode
+from .ast import ProgNode, CmdNode, PrimCmdBlock, PrimCmd, ExitNode, ReturnNode, ExprNode, FieldValue
 start = 'prog'
 
 def p_prog(p):
@@ -22,7 +22,7 @@ def p_cmd(p):
     elif(str(p[1]).lower() == "return"):
         p[0] = ReturnNode(p[2])
     elif(type(p[1]) == PrimCmd):
-        pass
+        p[0] = PrimCmdBlock(p[1], p[2])
     else:
         raise ValueError
 
@@ -32,20 +32,34 @@ def p_expr(p):
             | LBRACE fieldvals RBRACE 
     '''
     #TODO: 3 checks
-    p[0] = ExprNode()
+    if(len(p) == 2):
+        p[0] = ExprNode( p[1] )
+    elif(len(p) == 3):
+        p[0] = ExprNode( list() )
+    elif(len(p) > 3):
+        p[0] = ExprNode( p[2] )
+    
 
 def p_fieldvals(p):
     ''' fieldvals : ID EQUAL value
                   | ID EQUAL value COMMA fieldvals
     '''
-    pass
+    if(len(p) == 4):
+        p[0] = FieldValue(p[1], p[3], None)
+    elif(len(p) > 4):
+        p[0] = FieldValue(p[1], p[3], p[5])
 
 def p_value(p):
     ''' value : ID
               | ID PERIOD ID
               | USER
     '''
-    pass
+    if(len(p) == 2):
+        p[0] = str(p[1])
+    elif(len(p) == 4):
+        p[0] = str(p[1]) + "." + str(p[3])
+    else:
+        raise ValueError
 
 def p_primcmd(p):
     ''' primcmd : CREATE PRINCIPAL ID USER
@@ -66,13 +80,13 @@ def p_right(p):
               | APPEND
               | DELEGATE
     '''
-    pass
+    p[0] = str(p[1]).lower()
 
 def p_tgt(p):
     ''' tgt : ALL
             | ID
     '''
-    pass
+    p[0] = str(p[1]).lower()
     
 # Error rule for syntax errors
 def p_error(p):
