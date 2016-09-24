@@ -2,16 +2,17 @@ Created by PLY version 3.9 (http://www.dabeaz.com/ply)
 
 Unused terminals:
 
-    COMMENT
     ALL
+    NEWLINE
+    COMMENT
 
 Grammar
 
 Rule 0     S' -> prog
-Rule 1     prog -> AS PRINCIPAL ID PASSWORD USER DO NEWLINE cmd
-Rule 2     cmd -> EXIT NEWLINE
-Rule 3     cmd -> RETURN expr NEWLINE
-Rule 4     cmd -> primcmd NEWLINE cmd
+Rule 1     prog -> AS PRINCIPAL ID PASSWORD USER DO cmd
+Rule 2     cmd -> EXIT
+Rule 3     cmd -> RETURN expr
+Rule 4     cmd -> primcmd cmd
 Rule 5     expr -> value
 Rule 6     expr -> LBRACK RBRACK
 Rule 7     expr -> LBRACE fieldvals RBRACE
@@ -58,7 +59,7 @@ IN                   : 18
 LBRACE               : 7
 LBRACK               : 6
 LOCAL                : 17
-NEWLINE              : 1 2 3 4
+NEWLINE              : 
 PASSWORD             : 1 14
 PERIOD               : 11
 PRINCIPAL            : 1 13
@@ -89,7 +90,7 @@ Parsing method: LALR
 state 0
 
     (0) S' -> . prog
-    (1) prog -> . AS PRINCIPAL ID PASSWORD USER DO NEWLINE cmd
+    (1) prog -> . AS PRINCIPAL ID PASSWORD USER DO cmd
 
     AS              shift and go to state 2
 
@@ -103,52 +104,45 @@ state 1
 
 state 2
 
-    (1) prog -> AS . PRINCIPAL ID PASSWORD USER DO NEWLINE cmd
+    (1) prog -> AS . PRINCIPAL ID PASSWORD USER DO cmd
 
     PRINCIPAL       shift and go to state 3
 
 
 state 3
 
-    (1) prog -> AS PRINCIPAL . ID PASSWORD USER DO NEWLINE cmd
+    (1) prog -> AS PRINCIPAL . ID PASSWORD USER DO cmd
 
     ID              shift and go to state 4
 
 
 state 4
 
-    (1) prog -> AS PRINCIPAL ID . PASSWORD USER DO NEWLINE cmd
+    (1) prog -> AS PRINCIPAL ID . PASSWORD USER DO cmd
 
     PASSWORD        shift and go to state 5
 
 
 state 5
 
-    (1) prog -> AS PRINCIPAL ID PASSWORD . USER DO NEWLINE cmd
+    (1) prog -> AS PRINCIPAL ID PASSWORD . USER DO cmd
 
     USER            shift and go to state 6
 
 
 state 6
 
-    (1) prog -> AS PRINCIPAL ID PASSWORD USER . DO NEWLINE cmd
+    (1) prog -> AS PRINCIPAL ID PASSWORD USER . DO cmd
 
     DO              shift and go to state 7
 
 
 state 7
 
-    (1) prog -> AS PRINCIPAL ID PASSWORD USER DO . NEWLINE cmd
-
-    NEWLINE         shift and go to state 8
-
-
-state 8
-
-    (1) prog -> AS PRINCIPAL ID PASSWORD USER DO NEWLINE . cmd
-    (2) cmd -> . EXIT NEWLINE
-    (3) cmd -> . RETURN expr NEWLINE
-    (4) cmd -> . primcmd NEWLINE cmd
+    (1) prog -> AS PRINCIPAL ID PASSWORD USER DO . cmd
+    (2) cmd -> . EXIT
+    (3) cmd -> . RETURN expr
+    (4) cmd -> . primcmd cmd
     (13) primcmd -> . CREATE PRINCIPAL ID USER
     (14) primcmd -> . CHANGE PASSWORD ID USER
     (15) primcmd -> . SET ID EQUAL expr
@@ -159,74 +153,65 @@ state 8
     (20) primcmd -> . DELETE DELEGATION ID ID right ARROW ID
     (21) primcmd -> . DEFAULT DELEGATOR EQUAL ID
 
-    EXIT            shift and go to state 10
-    RETURN          shift and go to state 16
-    CREATE          shift and go to state 9
-    CHANGE          shift and go to state 18
-    SET             shift and go to state 12
-    APPEND          shift and go to state 13
-    LOCAL           shift and go to state 11
-    FOREACH         shift and go to state 17
-    DELETE          shift and go to state 15
-    DEFAULT         shift and go to state 20
+    EXIT            shift and go to state 12
+    RETURN          shift and go to state 14
+    CREATE          shift and go to state 15
+    CHANGE          shift and go to state 11
+    SET             shift and go to state 18
+    APPEND          shift and go to state 10
+    LOCAL           shift and go to state 19
+    FOREACH         shift and go to state 16
+    DELETE          shift and go to state 8
+    DEFAULT         shift and go to state 9
 
-    primcmd                        shift and go to state 14
-    cmd                            shift and go to state 19
+    cmd                            shift and go to state 13
+    primcmd                        shift and go to state 17
+
+state 8
+
+    (20) primcmd -> DELETE . DELEGATION ID ID right ARROW ID
+
+    DELEGATION      shift and go to state 20
+
 
 state 9
 
-    (13) primcmd -> CREATE . PRINCIPAL ID USER
+    (21) primcmd -> DEFAULT . DELEGATOR EQUAL ID
 
-    PRINCIPAL       shift and go to state 21
+    DELEGATOR       shift and go to state 21
 
 
 state 10
 
-    (2) cmd -> EXIT . NEWLINE
+    (16) primcmd -> APPEND . TO ID WITH expr
 
-    NEWLINE         shift and go to state 22
+    TO              shift and go to state 22
 
 
 state 11
 
-    (17) primcmd -> LOCAL . ID EQUAL expr
+    (14) primcmd -> CHANGE . PASSWORD ID USER
 
-    ID              shift and go to state 23
+    PASSWORD        shift and go to state 23
 
 
 state 12
 
-    (15) primcmd -> SET . ID EQUAL expr
-    (19) primcmd -> SET . DELEGATION ID ID right ARROW ID
+    (2) cmd -> EXIT .
 
-    ID              shift and go to state 24
-    DELEGATION      shift and go to state 25
+    $end            reduce using rule 2 (cmd -> EXIT .)
 
 
 state 13
 
-    (16) primcmd -> APPEND . TO ID WITH expr
+    (1) prog -> AS PRINCIPAL ID PASSWORD USER DO cmd .
 
-    TO              shift and go to state 26
+    $end            reduce using rule 1 (prog -> AS PRINCIPAL ID PASSWORD USER DO cmd .)
 
 
 state 14
 
-    (4) cmd -> primcmd . NEWLINE cmd
-
-    NEWLINE         shift and go to state 27
-
-
-state 15
-
-    (20) primcmd -> DELETE . DELEGATION ID ID right ARROW ID
-
-    DELEGATION      shift and go to state 28
-
-
-state 16
-
-    (3) cmd -> RETURN . expr NEWLINE
+    (3) cmd -> RETURN . expr
     (5) expr -> . value
     (6) expr -> . LBRACK RBRACK
     (7) expr -> . LBRACE fieldvals RBRACE
@@ -234,90 +219,34 @@ state 16
     (11) value -> . ID PERIOD ID
     (12) value -> . USER
 
-    LBRACK          shift and go to state 29
-    LBRACE          shift and go to state 31
-    ID              shift and go to state 33
-    USER            shift and go to state 32
+    LBRACK          shift and go to state 28
+    LBRACE          shift and go to state 29
+    ID              shift and go to state 27
+    USER            shift and go to state 25
 
-    value                          shift and go to state 30
-    expr                           shift and go to state 34
+    value                          shift and go to state 24
+    expr                           shift and go to state 26
 
-state 17
+state 15
+
+    (13) primcmd -> CREATE . PRINCIPAL ID USER
+
+    PRINCIPAL       shift and go to state 30
+
+
+state 16
 
     (18) primcmd -> FOREACH . ID IN ID REPLACEWITH expr
 
-    ID              shift and go to state 35
+    ID              shift and go to state 31
 
 
-state 18
+state 17
 
-    (14) primcmd -> CHANGE . PASSWORD ID USER
-
-    PASSWORD        shift and go to state 36
-
-
-state 19
-
-    (1) prog -> AS PRINCIPAL ID PASSWORD USER DO NEWLINE cmd .
-
-    $end            reduce using rule 1 (prog -> AS PRINCIPAL ID PASSWORD USER DO NEWLINE cmd .)
-
-
-state 20
-
-    (21) primcmd -> DEFAULT . DELEGATOR EQUAL ID
-
-    DELEGATOR       shift and go to state 37
-
-
-state 21
-
-    (13) primcmd -> CREATE PRINCIPAL . ID USER
-
-    ID              shift and go to state 38
-
-
-state 22
-
-    (2) cmd -> EXIT NEWLINE .
-
-    $end            reduce using rule 2 (cmd -> EXIT NEWLINE .)
-
-
-state 23
-
-    (17) primcmd -> LOCAL ID . EQUAL expr
-
-    EQUAL           shift and go to state 39
-
-
-state 24
-
-    (15) primcmd -> SET ID . EQUAL expr
-
-    EQUAL           shift and go to state 40
-
-
-state 25
-
-    (19) primcmd -> SET DELEGATION . ID ID right ARROW ID
-
-    ID              shift and go to state 41
-
-
-state 26
-
-    (16) primcmd -> APPEND TO . ID WITH expr
-
-    ID              shift and go to state 42
-
-
-state 27
-
-    (4) cmd -> primcmd NEWLINE . cmd
-    (2) cmd -> . EXIT NEWLINE
-    (3) cmd -> . RETURN expr NEWLINE
-    (4) cmd -> . primcmd NEWLINE cmd
+    (4) cmd -> primcmd . cmd
+    (2) cmd -> . EXIT
+    (3) cmd -> . RETURN expr
+    (4) cmd -> . primcmd cmd
     (13) primcmd -> . CREATE PRINCIPAL ID USER
     (14) primcmd -> . CHANGE PASSWORD ID USER
     (15) primcmd -> . SET ID EQUAL expr
@@ -328,125 +257,269 @@ state 27
     (20) primcmd -> . DELETE DELEGATION ID ID right ARROW ID
     (21) primcmd -> . DEFAULT DELEGATOR EQUAL ID
 
-    EXIT            shift and go to state 10
-    RETURN          shift and go to state 16
-    CREATE          shift and go to state 9
-    CHANGE          shift and go to state 18
-    SET             shift and go to state 12
-    APPEND          shift and go to state 13
-    LOCAL           shift and go to state 11
-    FOREACH         shift and go to state 17
-    DELETE          shift and go to state 15
-    DEFAULT         shift and go to state 20
+    EXIT            shift and go to state 12
+    RETURN          shift and go to state 14
+    CREATE          shift and go to state 15
+    CHANGE          shift and go to state 11
+    SET             shift and go to state 18
+    APPEND          shift and go to state 10
+    LOCAL           shift and go to state 19
+    FOREACH         shift and go to state 16
+    DELETE          shift and go to state 8
+    DEFAULT         shift and go to state 9
 
-    primcmd                        shift and go to state 14
-    cmd                            shift and go to state 43
+    cmd                            shift and go to state 32
+    primcmd                        shift and go to state 17
 
-state 28
+state 18
+
+    (15) primcmd -> SET . ID EQUAL expr
+    (19) primcmd -> SET . DELEGATION ID ID right ARROW ID
+
+    ID              shift and go to state 33
+    DELEGATION      shift and go to state 34
+
+
+state 19
+
+    (17) primcmd -> LOCAL . ID EQUAL expr
+
+    ID              shift and go to state 35
+
+
+state 20
 
     (20) primcmd -> DELETE DELEGATION . ID ID right ARROW ID
 
-    ID              shift and go to state 44
+    ID              shift and go to state 36
 
 
-state 29
+state 21
 
-    (6) expr -> LBRACK . RBRACK
+    (21) primcmd -> DEFAULT DELEGATOR . EQUAL ID
 
-    RBRACK          shift and go to state 45
+    EQUAL           shift and go to state 37
 
 
-state 30
+state 22
+
+    (16) primcmd -> APPEND TO . ID WITH expr
+
+    ID              shift and go to state 38
+
+
+state 23
+
+    (14) primcmd -> CHANGE PASSWORD . ID USER
+
+    ID              shift and go to state 39
+
+
+state 24
 
     (5) expr -> value .
 
-    NEWLINE         reduce using rule 5 (expr -> value .)
+    EXIT            reduce using rule 5 (expr -> value .)
+    RETURN          reduce using rule 5 (expr -> value .)
+    CREATE          reduce using rule 5 (expr -> value .)
+    CHANGE          reduce using rule 5 (expr -> value .)
+    SET             reduce using rule 5 (expr -> value .)
+    APPEND          reduce using rule 5 (expr -> value .)
+    LOCAL           reduce using rule 5 (expr -> value .)
+    FOREACH         reduce using rule 5 (expr -> value .)
+    DELETE          reduce using rule 5 (expr -> value .)
+    DEFAULT         reduce using rule 5 (expr -> value .)
+    $end            reduce using rule 5 (expr -> value .)
 
 
-state 31
+state 25
+
+    (12) value -> USER .
+
+    EXIT            reduce using rule 12 (value -> USER .)
+    RETURN          reduce using rule 12 (value -> USER .)
+    CREATE          reduce using rule 12 (value -> USER .)
+    CHANGE          reduce using rule 12 (value -> USER .)
+    SET             reduce using rule 12 (value -> USER .)
+    APPEND          reduce using rule 12 (value -> USER .)
+    LOCAL           reduce using rule 12 (value -> USER .)
+    FOREACH         reduce using rule 12 (value -> USER .)
+    DELETE          reduce using rule 12 (value -> USER .)
+    DEFAULT         reduce using rule 12 (value -> USER .)
+    $end            reduce using rule 12 (value -> USER .)
+    COMMA           reduce using rule 12 (value -> USER .)
+    RBRACE          reduce using rule 12 (value -> USER .)
+
+
+state 26
+
+    (3) cmd -> RETURN expr .
+
+    $end            reduce using rule 3 (cmd -> RETURN expr .)
+
+
+state 27
+
+    (10) value -> ID .
+    (11) value -> ID . PERIOD ID
+
+    EXIT            reduce using rule 10 (value -> ID .)
+    RETURN          reduce using rule 10 (value -> ID .)
+    CREATE          reduce using rule 10 (value -> ID .)
+    CHANGE          reduce using rule 10 (value -> ID .)
+    SET             reduce using rule 10 (value -> ID .)
+    APPEND          reduce using rule 10 (value -> ID .)
+    LOCAL           reduce using rule 10 (value -> ID .)
+    FOREACH         reduce using rule 10 (value -> ID .)
+    DELETE          reduce using rule 10 (value -> ID .)
+    DEFAULT         reduce using rule 10 (value -> ID .)
+    $end            reduce using rule 10 (value -> ID .)
+    COMMA           reduce using rule 10 (value -> ID .)
+    RBRACE          reduce using rule 10 (value -> ID .)
+    PERIOD          shift and go to state 40
+
+
+state 28
+
+    (6) expr -> LBRACK . RBRACK
+
+    RBRACK          shift and go to state 41
+
+
+state 29
 
     (7) expr -> LBRACE . fieldvals RBRACE
     (8) fieldvals -> . ID EQUAL value
     (9) fieldvals -> . ID EQUAL value COMMA fieldvals
 
-    ID              shift and go to state 46
+    ID              shift and go to state 43
 
-    fieldvals                      shift and go to state 47
+    fieldvals                      shift and go to state 42
+
+state 30
+
+    (13) primcmd -> CREATE PRINCIPAL . ID USER
+
+    ID              shift and go to state 44
+
+
+state 31
+
+    (18) primcmd -> FOREACH ID . IN ID REPLACEWITH expr
+
+    IN              shift and go to state 45
+
 
 state 32
 
-    (12) value -> USER .
+    (4) cmd -> primcmd cmd .
 
-    NEWLINE         reduce using rule 12 (value -> USER .)
-    COMMA           reduce using rule 12 (value -> USER .)
-    RBRACE          reduce using rule 12 (value -> USER .)
+    $end            reduce using rule 4 (cmd -> primcmd cmd .)
 
 
 state 33
 
-    (10) value -> ID .
-    (11) value -> ID . PERIOD ID
+    (15) primcmd -> SET ID . EQUAL expr
 
-    NEWLINE         reduce using rule 10 (value -> ID .)
-    COMMA           reduce using rule 10 (value -> ID .)
-    RBRACE          reduce using rule 10 (value -> ID .)
-    PERIOD          shift and go to state 48
+    EQUAL           shift and go to state 46
 
 
 state 34
 
-    (3) cmd -> RETURN expr . NEWLINE
+    (19) primcmd -> SET DELEGATION . ID ID right ARROW ID
 
-    NEWLINE         shift and go to state 49
+    ID              shift and go to state 47
 
 
 state 35
 
-    (18) primcmd -> FOREACH ID . IN ID REPLACEWITH expr
+    (17) primcmd -> LOCAL ID . EQUAL expr
 
-    IN              shift and go to state 50
+    EQUAL           shift and go to state 48
 
 
 state 36
 
-    (14) primcmd -> CHANGE PASSWORD . ID USER
+    (20) primcmd -> DELETE DELEGATION ID . ID right ARROW ID
 
-    ID              shift and go to state 51
+    ID              shift and go to state 49
 
 
 state 37
 
-    (21) primcmd -> DEFAULT DELEGATOR . EQUAL ID
+    (21) primcmd -> DEFAULT DELEGATOR EQUAL . ID
 
-    EQUAL           shift and go to state 52
+    ID              shift and go to state 50
 
 
 state 38
 
-    (13) primcmd -> CREATE PRINCIPAL ID . USER
+    (16) primcmd -> APPEND TO ID . WITH expr
 
-    USER            shift and go to state 53
+    WITH            shift and go to state 51
 
 
 state 39
 
-    (17) primcmd -> LOCAL ID EQUAL . expr
-    (5) expr -> . value
-    (6) expr -> . LBRACK RBRACK
-    (7) expr -> . LBRACE fieldvals RBRACE
-    (10) value -> . ID
-    (11) value -> . ID PERIOD ID
-    (12) value -> . USER
+    (14) primcmd -> CHANGE PASSWORD ID . USER
 
-    LBRACK          shift and go to state 29
-    LBRACE          shift and go to state 31
-    ID              shift and go to state 33
-    USER            shift and go to state 32
+    USER            shift and go to state 52
 
-    value                          shift and go to state 30
-    expr                           shift and go to state 54
 
 state 40
+
+    (11) value -> ID PERIOD . ID
+
+    ID              shift and go to state 53
+
+
+state 41
+
+    (6) expr -> LBRACK RBRACK .
+
+    EXIT            reduce using rule 6 (expr -> LBRACK RBRACK .)
+    RETURN          reduce using rule 6 (expr -> LBRACK RBRACK .)
+    CREATE          reduce using rule 6 (expr -> LBRACK RBRACK .)
+    CHANGE          reduce using rule 6 (expr -> LBRACK RBRACK .)
+    SET             reduce using rule 6 (expr -> LBRACK RBRACK .)
+    APPEND          reduce using rule 6 (expr -> LBRACK RBRACK .)
+    LOCAL           reduce using rule 6 (expr -> LBRACK RBRACK .)
+    FOREACH         reduce using rule 6 (expr -> LBRACK RBRACK .)
+    DELETE          reduce using rule 6 (expr -> LBRACK RBRACK .)
+    DEFAULT         reduce using rule 6 (expr -> LBRACK RBRACK .)
+    $end            reduce using rule 6 (expr -> LBRACK RBRACK .)
+
+
+state 42
+
+    (7) expr -> LBRACE fieldvals . RBRACE
+
+    RBRACE          shift and go to state 54
+
+
+state 43
+
+    (8) fieldvals -> ID . EQUAL value
+    (9) fieldvals -> ID . EQUAL value COMMA fieldvals
+
+    EQUAL           shift and go to state 55
+
+
+state 44
+
+    (13) primcmd -> CREATE PRINCIPAL ID . USER
+
+    USER            shift and go to state 56
+
+
+state 45
+
+    (18) primcmd -> FOREACH ID IN . ID REPLACEWITH expr
+
+    ID              shift and go to state 57
+
+
+state 46
 
     (15) primcmd -> SET ID EQUAL . expr
     (5) expr -> . value
@@ -456,136 +529,71 @@ state 40
     (11) value -> . ID PERIOD ID
     (12) value -> . USER
 
-    LBRACK          shift and go to state 29
-    LBRACE          shift and go to state 31
-    ID              shift and go to state 33
-    USER            shift and go to state 32
+    LBRACK          shift and go to state 28
+    LBRACE          shift and go to state 29
+    ID              shift and go to state 27
+    USER            shift and go to state 25
 
-    value                          shift and go to state 30
-    expr                           shift and go to state 55
-
-state 41
-
-    (19) primcmd -> SET DELEGATION ID . ID right ARROW ID
-
-    ID              shift and go to state 56
-
-
-state 42
-
-    (16) primcmd -> APPEND TO ID . WITH expr
-
-    WITH            shift and go to state 57
-
-
-state 43
-
-    (4) cmd -> primcmd NEWLINE cmd .
-
-    $end            reduce using rule 4 (cmd -> primcmd NEWLINE cmd .)
-
-
-state 44
-
-    (20) primcmd -> DELETE DELEGATION ID . ID right ARROW ID
-
-    ID              shift and go to state 58
-
-
-state 45
-
-    (6) expr -> LBRACK RBRACK .
-
-    NEWLINE         reduce using rule 6 (expr -> LBRACK RBRACK .)
-
-
-state 46
-
-    (8) fieldvals -> ID . EQUAL value
-    (9) fieldvals -> ID . EQUAL value COMMA fieldvals
-
-    EQUAL           shift and go to state 59
-
+    value                          shift and go to state 24
+    expr                           shift and go to state 58
 
 state 47
 
-    (7) expr -> LBRACE fieldvals . RBRACE
+    (19) primcmd -> SET DELEGATION ID . ID right ARROW ID
 
-    RBRACE          shift and go to state 60
+    ID              shift and go to state 59
 
 
 state 48
 
-    (11) value -> ID PERIOD . ID
+    (17) primcmd -> LOCAL ID EQUAL . expr
+    (5) expr -> . value
+    (6) expr -> . LBRACK RBRACK
+    (7) expr -> . LBRACE fieldvals RBRACE
+    (10) value -> . ID
+    (11) value -> . ID PERIOD ID
+    (12) value -> . USER
 
-    ID              shift and go to state 61
+    LBRACK          shift and go to state 28
+    LBRACE          shift and go to state 29
+    ID              shift and go to state 27
+    USER            shift and go to state 25
 
+    value                          shift and go to state 24
+    expr                           shift and go to state 60
 
 state 49
 
-    (3) cmd -> RETURN expr NEWLINE .
-
-    $end            reduce using rule 3 (cmd -> RETURN expr NEWLINE .)
-
-
-state 50
-
-    (18) primcmd -> FOREACH ID IN . ID REPLACEWITH expr
-
-    ID              shift and go to state 62
-
-
-state 51
-
-    (14) primcmd -> CHANGE PASSWORD ID . USER
-
-    USER            shift and go to state 63
-
-
-state 52
-
-    (21) primcmd -> DEFAULT DELEGATOR EQUAL . ID
-
-    ID              shift and go to state 64
-
-
-state 53
-
-    (13) primcmd -> CREATE PRINCIPAL ID USER .
-
-    NEWLINE         reduce using rule 13 (primcmd -> CREATE PRINCIPAL ID USER .)
-
-
-state 54
-
-    (17) primcmd -> LOCAL ID EQUAL expr .
-
-    NEWLINE         reduce using rule 17 (primcmd -> LOCAL ID EQUAL expr .)
-
-
-state 55
-
-    (15) primcmd -> SET ID EQUAL expr .
-
-    NEWLINE         reduce using rule 15 (primcmd -> SET ID EQUAL expr .)
-
-
-state 56
-
-    (19) primcmd -> SET DELEGATION ID ID . right ARROW ID
+    (20) primcmd -> DELETE DELEGATION ID ID . right ARROW ID
     (22) right -> . READ
     (23) right -> . WRITE
     (24) right -> . APPEND
     (25) right -> . DELEGATE
 
-    READ            shift and go to state 65
-    WRITE           shift and go to state 66
-    APPEND          shift and go to state 68
-    DELEGATE        shift and go to state 69
+    READ            shift and go to state 63
+    WRITE           shift and go to state 64
+    APPEND          shift and go to state 65
+    DELEGATE        shift and go to state 61
 
-    right                          shift and go to state 67
+    right                          shift and go to state 62
 
-state 57
+state 50
+
+    (21) primcmd -> DEFAULT DELEGATOR EQUAL ID .
+
+    EXIT            reduce using rule 21 (primcmd -> DEFAULT DELEGATOR EQUAL ID .)
+    RETURN          reduce using rule 21 (primcmd -> DEFAULT DELEGATOR EQUAL ID .)
+    CREATE          reduce using rule 21 (primcmd -> DEFAULT DELEGATOR EQUAL ID .)
+    CHANGE          reduce using rule 21 (primcmd -> DEFAULT DELEGATOR EQUAL ID .)
+    SET             reduce using rule 21 (primcmd -> DEFAULT DELEGATOR EQUAL ID .)
+    APPEND          reduce using rule 21 (primcmd -> DEFAULT DELEGATOR EQUAL ID .)
+    LOCAL           reduce using rule 21 (primcmd -> DEFAULT DELEGATOR EQUAL ID .)
+    FOREACH         reduce using rule 21 (primcmd -> DEFAULT DELEGATOR EQUAL ID .)
+    DELETE          reduce using rule 21 (primcmd -> DEFAULT DELEGATOR EQUAL ID .)
+    DEFAULT         reduce using rule 21 (primcmd -> DEFAULT DELEGATOR EQUAL ID .)
+
+
+state 51
 
     (16) primcmd -> APPEND TO ID WITH . expr
     (5) expr -> . value
@@ -595,30 +603,67 @@ state 57
     (11) value -> . ID PERIOD ID
     (12) value -> . USER
 
-    LBRACK          shift and go to state 29
-    LBRACE          shift and go to state 31
-    ID              shift and go to state 33
-    USER            shift and go to state 32
+    LBRACK          shift and go to state 28
+    LBRACE          shift and go to state 29
+    ID              shift and go to state 27
+    USER            shift and go to state 25
 
-    value                          shift and go to state 30
-    expr                           shift and go to state 70
+    value                          shift and go to state 24
+    expr                           shift and go to state 66
 
-state 58
+state 52
 
-    (20) primcmd -> DELETE DELEGATION ID ID . right ARROW ID
-    (22) right -> . READ
-    (23) right -> . WRITE
-    (24) right -> . APPEND
-    (25) right -> . DELEGATE
+    (14) primcmd -> CHANGE PASSWORD ID USER .
 
-    READ            shift and go to state 65
-    WRITE           shift and go to state 66
-    APPEND          shift and go to state 68
-    DELEGATE        shift and go to state 69
+    EXIT            reduce using rule 14 (primcmd -> CHANGE PASSWORD ID USER .)
+    RETURN          reduce using rule 14 (primcmd -> CHANGE PASSWORD ID USER .)
+    CREATE          reduce using rule 14 (primcmd -> CHANGE PASSWORD ID USER .)
+    CHANGE          reduce using rule 14 (primcmd -> CHANGE PASSWORD ID USER .)
+    SET             reduce using rule 14 (primcmd -> CHANGE PASSWORD ID USER .)
+    APPEND          reduce using rule 14 (primcmd -> CHANGE PASSWORD ID USER .)
+    LOCAL           reduce using rule 14 (primcmd -> CHANGE PASSWORD ID USER .)
+    FOREACH         reduce using rule 14 (primcmd -> CHANGE PASSWORD ID USER .)
+    DELETE          reduce using rule 14 (primcmd -> CHANGE PASSWORD ID USER .)
+    DEFAULT         reduce using rule 14 (primcmd -> CHANGE PASSWORD ID USER .)
 
-    right                          shift and go to state 71
 
-state 59
+state 53
+
+    (11) value -> ID PERIOD ID .
+
+    EXIT            reduce using rule 11 (value -> ID PERIOD ID .)
+    RETURN          reduce using rule 11 (value -> ID PERIOD ID .)
+    CREATE          reduce using rule 11 (value -> ID PERIOD ID .)
+    CHANGE          reduce using rule 11 (value -> ID PERIOD ID .)
+    SET             reduce using rule 11 (value -> ID PERIOD ID .)
+    APPEND          reduce using rule 11 (value -> ID PERIOD ID .)
+    LOCAL           reduce using rule 11 (value -> ID PERIOD ID .)
+    FOREACH         reduce using rule 11 (value -> ID PERIOD ID .)
+    DELETE          reduce using rule 11 (value -> ID PERIOD ID .)
+    DEFAULT         reduce using rule 11 (value -> ID PERIOD ID .)
+    $end            reduce using rule 11 (value -> ID PERIOD ID .)
+    COMMA           reduce using rule 11 (value -> ID PERIOD ID .)
+    RBRACE          reduce using rule 11 (value -> ID PERIOD ID .)
+
+
+state 54
+
+    (7) expr -> LBRACE fieldvals RBRACE .
+
+    EXIT            reduce using rule 7 (expr -> LBRACE fieldvals RBRACE .)
+    RETURN          reduce using rule 7 (expr -> LBRACE fieldvals RBRACE .)
+    CREATE          reduce using rule 7 (expr -> LBRACE fieldvals RBRACE .)
+    CHANGE          reduce using rule 7 (expr -> LBRACE fieldvals RBRACE .)
+    SET             reduce using rule 7 (expr -> LBRACE fieldvals RBRACE .)
+    APPEND          reduce using rule 7 (expr -> LBRACE fieldvals RBRACE .)
+    LOCAL           reduce using rule 7 (expr -> LBRACE fieldvals RBRACE .)
+    FOREACH         reduce using rule 7 (expr -> LBRACE fieldvals RBRACE .)
+    DELETE          reduce using rule 7 (expr -> LBRACE fieldvals RBRACE .)
+    DEFAULT         reduce using rule 7 (expr -> LBRACE fieldvals RBRACE .)
+    $end            reduce using rule 7 (expr -> LBRACE fieldvals RBRACE .)
+
+
+state 55
 
     (8) fieldvals -> ID EQUAL . value
     (9) fieldvals -> ID EQUAL . value COMMA fieldvals
@@ -626,107 +671,142 @@ state 59
     (11) value -> . ID PERIOD ID
     (12) value -> . USER
 
-    ID              shift and go to state 33
-    USER            shift and go to state 32
+    ID              shift and go to state 27
+    USER            shift and go to state 25
 
-    value                          shift and go to state 72
+    value                          shift and go to state 67
 
-state 60
+state 56
 
-    (7) expr -> LBRACE fieldvals RBRACE .
+    (13) primcmd -> CREATE PRINCIPAL ID USER .
 
-    NEWLINE         reduce using rule 7 (expr -> LBRACE fieldvals RBRACE .)
+    EXIT            reduce using rule 13 (primcmd -> CREATE PRINCIPAL ID USER .)
+    RETURN          reduce using rule 13 (primcmd -> CREATE PRINCIPAL ID USER .)
+    CREATE          reduce using rule 13 (primcmd -> CREATE PRINCIPAL ID USER .)
+    CHANGE          reduce using rule 13 (primcmd -> CREATE PRINCIPAL ID USER .)
+    SET             reduce using rule 13 (primcmd -> CREATE PRINCIPAL ID USER .)
+    APPEND          reduce using rule 13 (primcmd -> CREATE PRINCIPAL ID USER .)
+    LOCAL           reduce using rule 13 (primcmd -> CREATE PRINCIPAL ID USER .)
+    FOREACH         reduce using rule 13 (primcmd -> CREATE PRINCIPAL ID USER .)
+    DELETE          reduce using rule 13 (primcmd -> CREATE PRINCIPAL ID USER .)
+    DEFAULT         reduce using rule 13 (primcmd -> CREATE PRINCIPAL ID USER .)
 
 
-state 61
-
-    (11) value -> ID PERIOD ID .
-
-    NEWLINE         reduce using rule 11 (value -> ID PERIOD ID .)
-    COMMA           reduce using rule 11 (value -> ID PERIOD ID .)
-    RBRACE          reduce using rule 11 (value -> ID PERIOD ID .)
-
-
-state 62
+state 57
 
     (18) primcmd -> FOREACH ID IN ID . REPLACEWITH expr
 
-    REPLACEWITH     shift and go to state 73
+    REPLACEWITH     shift and go to state 68
 
 
-state 63
+state 58
 
-    (14) primcmd -> CHANGE PASSWORD ID USER .
+    (15) primcmd -> SET ID EQUAL expr .
 
-    NEWLINE         reduce using rule 14 (primcmd -> CHANGE PASSWORD ID USER .)
-
-
-state 64
-
-    (21) primcmd -> DEFAULT DELEGATOR EQUAL ID .
-
-    NEWLINE         reduce using rule 21 (primcmd -> DEFAULT DELEGATOR EQUAL ID .)
-
-
-state 65
-
-    (22) right -> READ .
-
-    ARROW           reduce using rule 22 (right -> READ .)
+    EXIT            reduce using rule 15 (primcmd -> SET ID EQUAL expr .)
+    RETURN          reduce using rule 15 (primcmd -> SET ID EQUAL expr .)
+    CREATE          reduce using rule 15 (primcmd -> SET ID EQUAL expr .)
+    CHANGE          reduce using rule 15 (primcmd -> SET ID EQUAL expr .)
+    SET             reduce using rule 15 (primcmd -> SET ID EQUAL expr .)
+    APPEND          reduce using rule 15 (primcmd -> SET ID EQUAL expr .)
+    LOCAL           reduce using rule 15 (primcmd -> SET ID EQUAL expr .)
+    FOREACH         reduce using rule 15 (primcmd -> SET ID EQUAL expr .)
+    DELETE          reduce using rule 15 (primcmd -> SET ID EQUAL expr .)
+    DEFAULT         reduce using rule 15 (primcmd -> SET ID EQUAL expr .)
 
 
-state 66
+state 59
 
-    (23) right -> WRITE .
+    (19) primcmd -> SET DELEGATION ID ID . right ARROW ID
+    (22) right -> . READ
+    (23) right -> . WRITE
+    (24) right -> . APPEND
+    (25) right -> . DELEGATE
 
-    ARROW           reduce using rule 23 (right -> WRITE .)
+    READ            shift and go to state 63
+    WRITE           shift and go to state 64
+    APPEND          shift and go to state 65
+    DELEGATE        shift and go to state 61
+
+    right                          shift and go to state 69
+
+state 60
+
+    (17) primcmd -> LOCAL ID EQUAL expr .
+
+    EXIT            reduce using rule 17 (primcmd -> LOCAL ID EQUAL expr .)
+    RETURN          reduce using rule 17 (primcmd -> LOCAL ID EQUAL expr .)
+    CREATE          reduce using rule 17 (primcmd -> LOCAL ID EQUAL expr .)
+    CHANGE          reduce using rule 17 (primcmd -> LOCAL ID EQUAL expr .)
+    SET             reduce using rule 17 (primcmd -> LOCAL ID EQUAL expr .)
+    APPEND          reduce using rule 17 (primcmd -> LOCAL ID EQUAL expr .)
+    LOCAL           reduce using rule 17 (primcmd -> LOCAL ID EQUAL expr .)
+    FOREACH         reduce using rule 17 (primcmd -> LOCAL ID EQUAL expr .)
+    DELETE          reduce using rule 17 (primcmd -> LOCAL ID EQUAL expr .)
+    DEFAULT         reduce using rule 17 (primcmd -> LOCAL ID EQUAL expr .)
 
 
-state 67
-
-    (19) primcmd -> SET DELEGATION ID ID right . ARROW ID
-
-    ARROW           shift and go to state 74
-
-
-state 68
-
-    (24) right -> APPEND .
-
-    ARROW           reduce using rule 24 (right -> APPEND .)
-
-
-state 69
+state 61
 
     (25) right -> DELEGATE .
 
     ARROW           reduce using rule 25 (right -> DELEGATE .)
 
 
-state 70
-
-    (16) primcmd -> APPEND TO ID WITH expr .
-
-    NEWLINE         reduce using rule 16 (primcmd -> APPEND TO ID WITH expr .)
-
-
-state 71
+state 62
 
     (20) primcmd -> DELETE DELEGATION ID ID right . ARROW ID
 
-    ARROW           shift and go to state 75
+    ARROW           shift and go to state 70
 
 
-state 72
+state 63
+
+    (22) right -> READ .
+
+    ARROW           reduce using rule 22 (right -> READ .)
+
+
+state 64
+
+    (23) right -> WRITE .
+
+    ARROW           reduce using rule 23 (right -> WRITE .)
+
+
+state 65
+
+    (24) right -> APPEND .
+
+    ARROW           reduce using rule 24 (right -> APPEND .)
+
+
+state 66
+
+    (16) primcmd -> APPEND TO ID WITH expr .
+
+    EXIT            reduce using rule 16 (primcmd -> APPEND TO ID WITH expr .)
+    RETURN          reduce using rule 16 (primcmd -> APPEND TO ID WITH expr .)
+    CREATE          reduce using rule 16 (primcmd -> APPEND TO ID WITH expr .)
+    CHANGE          reduce using rule 16 (primcmd -> APPEND TO ID WITH expr .)
+    SET             reduce using rule 16 (primcmd -> APPEND TO ID WITH expr .)
+    APPEND          reduce using rule 16 (primcmd -> APPEND TO ID WITH expr .)
+    LOCAL           reduce using rule 16 (primcmd -> APPEND TO ID WITH expr .)
+    FOREACH         reduce using rule 16 (primcmd -> APPEND TO ID WITH expr .)
+    DELETE          reduce using rule 16 (primcmd -> APPEND TO ID WITH expr .)
+    DEFAULT         reduce using rule 16 (primcmd -> APPEND TO ID WITH expr .)
+
+
+state 67
 
     (8) fieldvals -> ID EQUAL value .
     (9) fieldvals -> ID EQUAL value . COMMA fieldvals
 
     RBRACE          reduce using rule 8 (fieldvals -> ID EQUAL value .)
-    COMMA           shift and go to state 76
+    COMMA           shift and go to state 71
 
 
-state 73
+state 68
 
     (18) primcmd -> FOREACH ID IN ID REPLACEWITH . expr
     (5) expr -> . value
@@ -736,62 +816,96 @@ state 73
     (11) value -> . ID PERIOD ID
     (12) value -> . USER
 
-    LBRACK          shift and go to state 29
-    LBRACE          shift and go to state 31
-    ID              shift and go to state 33
-    USER            shift and go to state 32
+    LBRACK          shift and go to state 28
+    LBRACE          shift and go to state 29
+    ID              shift and go to state 27
+    USER            shift and go to state 25
 
-    value                          shift and go to state 30
-    expr                           shift and go to state 77
+    value                          shift and go to state 24
+    expr                           shift and go to state 72
 
-state 74
+state 69
 
-    (19) primcmd -> SET DELEGATION ID ID right ARROW . ID
+    (19) primcmd -> SET DELEGATION ID ID right . ARROW ID
 
-    ID              shift and go to state 78
+    ARROW           shift and go to state 73
 
 
-state 75
+state 70
 
     (20) primcmd -> DELETE DELEGATION ID ID right ARROW . ID
 
-    ID              shift and go to state 79
+    ID              shift and go to state 74
 
 
-state 76
+state 71
 
     (9) fieldvals -> ID EQUAL value COMMA . fieldvals
     (8) fieldvals -> . ID EQUAL value
     (9) fieldvals -> . ID EQUAL value COMMA fieldvals
 
-    ID              shift and go to state 46
+    ID              shift and go to state 43
 
-    fieldvals                      shift and go to state 80
+    fieldvals                      shift and go to state 75
 
-state 77
+state 72
 
     (18) primcmd -> FOREACH ID IN ID REPLACEWITH expr .
 
-    NEWLINE         reduce using rule 18 (primcmd -> FOREACH ID IN ID REPLACEWITH expr .)
+    EXIT            reduce using rule 18 (primcmd -> FOREACH ID IN ID REPLACEWITH expr .)
+    RETURN          reduce using rule 18 (primcmd -> FOREACH ID IN ID REPLACEWITH expr .)
+    CREATE          reduce using rule 18 (primcmd -> FOREACH ID IN ID REPLACEWITH expr .)
+    CHANGE          reduce using rule 18 (primcmd -> FOREACH ID IN ID REPLACEWITH expr .)
+    SET             reduce using rule 18 (primcmd -> FOREACH ID IN ID REPLACEWITH expr .)
+    APPEND          reduce using rule 18 (primcmd -> FOREACH ID IN ID REPLACEWITH expr .)
+    LOCAL           reduce using rule 18 (primcmd -> FOREACH ID IN ID REPLACEWITH expr .)
+    FOREACH         reduce using rule 18 (primcmd -> FOREACH ID IN ID REPLACEWITH expr .)
+    DELETE          reduce using rule 18 (primcmd -> FOREACH ID IN ID REPLACEWITH expr .)
+    DEFAULT         reduce using rule 18 (primcmd -> FOREACH ID IN ID REPLACEWITH expr .)
 
 
-state 78
+state 73
 
-    (19) primcmd -> SET DELEGATION ID ID right ARROW ID .
+    (19) primcmd -> SET DELEGATION ID ID right ARROW . ID
 
-    NEWLINE         reduce using rule 19 (primcmd -> SET DELEGATION ID ID right ARROW ID .)
+    ID              shift and go to state 76
 
 
-state 79
+state 74
 
     (20) primcmd -> DELETE DELEGATION ID ID right ARROW ID .
 
-    NEWLINE         reduce using rule 20 (primcmd -> DELETE DELEGATION ID ID right ARROW ID .)
+    EXIT            reduce using rule 20 (primcmd -> DELETE DELEGATION ID ID right ARROW ID .)
+    RETURN          reduce using rule 20 (primcmd -> DELETE DELEGATION ID ID right ARROW ID .)
+    CREATE          reduce using rule 20 (primcmd -> DELETE DELEGATION ID ID right ARROW ID .)
+    CHANGE          reduce using rule 20 (primcmd -> DELETE DELEGATION ID ID right ARROW ID .)
+    SET             reduce using rule 20 (primcmd -> DELETE DELEGATION ID ID right ARROW ID .)
+    APPEND          reduce using rule 20 (primcmd -> DELETE DELEGATION ID ID right ARROW ID .)
+    LOCAL           reduce using rule 20 (primcmd -> DELETE DELEGATION ID ID right ARROW ID .)
+    FOREACH         reduce using rule 20 (primcmd -> DELETE DELEGATION ID ID right ARROW ID .)
+    DELETE          reduce using rule 20 (primcmd -> DELETE DELEGATION ID ID right ARROW ID .)
+    DEFAULT         reduce using rule 20 (primcmd -> DELETE DELEGATION ID ID right ARROW ID .)
 
 
-state 80
+state 75
 
     (9) fieldvals -> ID EQUAL value COMMA fieldvals .
 
     RBRACE          reduce using rule 9 (fieldvals -> ID EQUAL value COMMA fieldvals .)
+
+
+state 76
+
+    (19) primcmd -> SET DELEGATION ID ID right ARROW ID .
+
+    EXIT            reduce using rule 19 (primcmd -> SET DELEGATION ID ID right ARROW ID .)
+    RETURN          reduce using rule 19 (primcmd -> SET DELEGATION ID ID right ARROW ID .)
+    CREATE          reduce using rule 19 (primcmd -> SET DELEGATION ID ID right ARROW ID .)
+    CHANGE          reduce using rule 19 (primcmd -> SET DELEGATION ID ID right ARROW ID .)
+    SET             reduce using rule 19 (primcmd -> SET DELEGATION ID ID right ARROW ID .)
+    APPEND          reduce using rule 19 (primcmd -> SET DELEGATION ID ID right ARROW ID .)
+    LOCAL           reduce using rule 19 (primcmd -> SET DELEGATION ID ID right ARROW ID .)
+    FOREACH         reduce using rule 19 (primcmd -> SET DELEGATION ID ID right ARROW ID .)
+    DELETE          reduce using rule 19 (primcmd -> SET DELEGATION ID ID right ARROW ID .)
+    DEFAULT         reduce using rule 19 (primcmd -> SET DELEGATION ID ID right ARROW ID .)
 
