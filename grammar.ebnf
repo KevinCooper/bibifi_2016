@@ -7,6 +7,8 @@ CHARACTER ::= LOWER | UPPER | DIGIT | SPECIAL
 CHARACTERS ::= | CHARACTER CHARACTER
 QUOTE ::= "
 
+comment "//";
+
 //No more than 65,535 characters surrounded by double quotes - "[A-Za-z0-9_ ,;\.?!-]*"
 S_VAL ::= QUOTE CHARACTERS QUOTE
 
