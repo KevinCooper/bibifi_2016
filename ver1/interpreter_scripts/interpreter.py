@@ -7,8 +7,13 @@ from .errors import *
 from .ast import *
 import pickle
 import json
+import networkx as nx
+
+
 user = ""
 status = []
+network = None
+
 def progNode(node : ProgNode, cursor : sqlite3.Cursor) :
     global user
     user = node.user
@@ -27,11 +32,14 @@ def progNode(node : ProgNode, cursor : sqlite3.Cursor) :
     #Otherwise, the server terminates the connection after running <cmd> under the authority of principal p.
     return node.cmd
 
-def has_perms(user: str, data : dict , req : list) -> bool:
-    perms = data.get("perms", None)
-    perms = perms.get(user, None)
-    if(not perms): return False #user does not exist in permission list
-    return set(req).issubset(set(perms))
+def has_perms(name: str, user: str, req : list) -> bool:
+    #TODO ARGH
+    global network
+    for item in req:
+        G = nx.DiGraph()
+    
+    return True
+    
 
 def get_id_data(node, user : str , cursor : sqlite3.Cursor , name : str):
     '''
@@ -43,7 +51,7 @@ def get_id_data(node, user : str , cursor : sqlite3.Cursor , name : str):
     if(not temp) : raise FailError(str(node), " - setting with illegal reference to {0}".format(name))
     data = json.loads(temp[0]) #See data_format for expected output
     #Security violation if the current principal does not have read permission on x.    
-    if(not has_perms(user, data, ["R"])): raise SecurityError(str(node), " - no read permission for {0}".format(name))
+    if(not has_perms(name, user, ["R"])): raise SecurityError(str(node), " - no read permission for {0}".format(name))
     #Returns the current value of variable x.
     return data.get("type", None), data.get("data", None)
 
@@ -57,7 +65,7 @@ def get_record_data(node, user : str, cursor : sqlite3.Cursor, parent : str, chi
     if(not temp) : raise FailError(str(node), " - setting with illegal reference to {0}".format(parent))
     data = json.loads(temp[0]) #See data_format for expected output
     #Security violation if the current principal does not have read permission on x.
-    if(not has_perms(user, data, ["R"])): raise SecurityError(str(node), " - no read permission for {0}".format(parent))
+    if(not has_perms(data['name'], user, ["R"])): raise SecurityError(str(node), " - no read permission for {0}".format(parent))
     data = data.get("data", None)
     #Fails if x is not a record or does not have a y field.
     if(not data): raise FailError(str(node), " - {0} has no fields.".format(parent))
@@ -110,13 +118,13 @@ def primSetCmd(node : SetCmd, cursor : sqlite3.Cursor, scope : str):
     #    Fails if x is already defined as a local or global variable.
     #Set:
     #    Security violation if the current principal does not have write permission on x.
-    global user, status
+    global user, status, network
     name = node.x
     expr = node.expr.node
 
     new_data = {
             "name":name, 
-            "perms": {"admin": ["R", "W", "A", "D"] } 
+            #"perms": {"admin": ["R", "W", "A", "D"] } 
             }
     #PREP DATA
     data_type, data = evalExpr(cursor, node, user, expr)
@@ -134,12 +142,22 @@ def primSetCmd(node : SetCmd, cursor : sqlite3.Cursor, scope : str):
     elif(temp_data):
         temp_data = json.loads(temp_data)
         #Set: Security violation if the current principal does not have write permission on x.
-        if(not has_perms(user, temp_data, ["W"])): raise SecurityError(str(node), " - no Write permission for existing value {0}".format(name))
+        if(not has_perms(name, user, ["W"])): raise SecurityError(str(node), " - no Write permission for existing value {0}".format(name))
         cursor.execute("UPDATE data(name, value, scope) SET value={0} WHERE name={1}", (new_data, name))
     else:
         cursor.execute("insert into data(name, value, scope) values (?, ?, ?)", (name, new_data, scope))
+        #TODO: cleanse locals at end of run from network
+        network.add_node(name, scope=scope)
+        #If x is created by this command, and the current principal is not admin, then the current principal is delegated read, write, append, and delegate rights from the admin on x 
+        if(user != "admin"):
+            network[user]["admin"] = set(["D:R:"+name, "D:W"+name, "D:A"+name, "D:D"+name])
+        network["admin"][name] = set(["R", "W", "A", "D"])
+    
+
     status.append({"status":"SET"})
-    #cursor.execute("UPDATE users(user, password) SET password={0} WHERE user={1}", (s, p))
+
+
+    
 
 def primChangeCmd(node : CreateCmd, cursor : sqlite3.Cursor):
     ''' create principal p s  #s surrounded by double quotes
@@ -174,20 +192,21 @@ def primCreateCmd(node : CreateCmd, cursor : sqlite3.Cursor):
     Successful status code: 
         CREATE_PRINCIPAL
     '''
-    global user
-    p = node.p
+    global user, network
+    new_user = node.p
     s = node.s.replace('"', "")
 
     if(user != "admin"): #Security violation if the current principal is not admin.
         raise SecurityError("{0}".format(user), " is not the administrator")
 
-    cursor.execute("SELECT * FROM users WHERE user = ? LIMIT 1", (p,))
+    cursor.execute("SELECT * FROM users WHERE user = ? LIMIT 1", (new_user,))
     temp = cursor.fetchone()
 
     if(temp): #Fails if p already exists as a principal.
         raise FailError("{0}".format(user), " already exists")
 
-    cursor.execute("insert into users(user, password) values (?, ?)", (p, s))
+    cursor.execute("insert into users(user, password) values (?, ?)", (new_user, s))
+    network.add_node(new_user)
     status.append({"status":"CREATE_PRINCIPAL"})
 
 def returnBlock(node : ReturnNode, cursor : sqlite3.Cursor):
@@ -221,39 +240,75 @@ def primAppendCmd(node : ReturnNode, cursor : sqlite3.Cursor):
         #Fails if x is not a list.
         if(temp_data['type'] != 'list'): raise FailError(str(node), " {0} is not a list".format(name))
         #Security violation if the current principal does not have either write or append permission on x.
-        if(not has_perms(user, temp_data, ["W", "A"])): raise SecurityError(str(node), " - no write/append permission for existing value {0}".format(name))
+        if(not has_perms(name, user, ["W", "A"])): raise SecurityError(str(node), " - no write/append permission for existing value {0}".format(name))
         temp_data['data'].append(data)
         new_data = json.dumps(temp_data)
         cursor.execute("UPDATE data(name, value, scope) SET value={0} WHERE name={1}", (new_data, name))
 
 def primSetDel(node: SetDel, cursor : sqlite3.Cursor):
-    global user, status
+    #set delegation <tgt> q <right> -> p
+    #                tgt  src right  -> dst
+    global user, status, network
     target = node.tgt
     src_user = node.src_id
     right = node.right
     dst_user = node.dst_id
-
-    #set delegation x p <right> -> q requires that, if x is a "normal" variable, the current principal be either admin or p.
-    #If the latter, p must have delegate permission on x.
-    if(user != "admin" and user != src_user and target != "all"): raise FailError(str(node), " cannot give another users rights away")
-    #Do we need to check src user, since we can't be running as him if he doesn't exist?
+    
+    #Fails if either p or q does not exist.
     cursor.execute("SELECT * FROM users WHERE user = ? LIMIT 1", (src_user,))
     temp_data = cursor.fetchone()
     if(not temp_data): raise FailError(str(node), " giving user does not exist")
     cursor.execute("SELECT * FROM users WHERE user = ? LIMIT 1", (dst_user,))
     temp_data = cursor.fetchone()
     if(not temp_data): raise FailError(str(node), " receiving user does not exist")
+    #set delegation x p <right> -> q requires that, if x is a "normal" variable, the current principal be either admin or p.
+    #If the latter, p must have delegate permission on x.
+    if(user != "admin" and user != src_user): raise SecurityError(str(node), " cannot give another users rights away")
 
+    if(not network.has_edge(dst_user, src_user)):
+        network.add_edge(dst_user, src_user, set())
+    
+    if(right == "all"):
+        #TODO: implement
+        pass
+    else:
+        #TODO: Security Violation if if q does not have delegate permission on x, when <tgt> is a variable x.
+        tempSet = set(network[dst_user][src_user])
+        network[dst_user][src_user] = tempSet.union(set(["D:"+right+":"+target]))
 
     status.append({"status":"SET_DELEGATION"})
     
 
 def primDelDel(node: SetDel, cursor : sqlite3.Cursor):
+    #delete delegation <tgt> q <right> -> p 
+    #                  tgt  src right  -> dst
     global user, status
     target = node.tgt
     src_user = node.src_id
     right = node.right
     dst_user = node.dst_id
+
+    #Fails if either p or q does not exist.
+    cursor.execute("SELECT * FROM users WHERE user = ? LIMIT 1", (src_user,))
+    temp_data = cursor.fetchone()
+    if(not temp_data): raise FailError(str(node), " giving user does not exist")
+    cursor.execute("SELECT * FROM users WHERE user = ? LIMIT 1", (dst_user,))
+    temp_data = cursor.fetchone()
+    if(not temp_data): raise FailError(str(node), " receiving user does not exist")
+    #set delegation x p <right> -> q requires that, if x is a "normal" variable, the current principal be either admin or p.
+    #If the latter, p must have delegate permission on x.
+    if(user != "admin" and user != src_user and user != dst_user): raise SecurityError(str(node), " cannot delete another users rights")
+
+
+    if(not network.has_edge(dst_user, src_user)):
+        pass #Does exist anyways!
+    elif(right == "all"):
+        #TODO: implement
+        pass
+    else:
+        #TODO: if the principal is q and <tgt> is a variable x, then it must have delegate permission on x
+        tempSet = set(network[dst_user][src_user])
+        network[dst_user][src_user] = tempSet.difference(set(["D:"+right+":"+target]))
 
     status.append({"status":"DELETE_DELEGATION"})
 
@@ -278,18 +333,18 @@ def primCmdBlockNode(node : PrimCmdBlock, cursor : sqlite3.Cursor) :
     return cmd
 
 
-def run_program(db_con : sqlite3.Connection , program: str):
+def run_program(db_con : sqlite3.Connection , program: str, in_network : nx.DiGraph ):
+    global network
+    network = in_network
+
+    backup = network.copy() #When we eventually catch failure, return this
+
     my_parser = LanguageParser()
     result = my_parser.parse(program)
-    #print("\n\nAST:")
-    #print(result)
-    cursor = db_con.cursor()
 
+    cursor = db_con.cursor()
     node = result
-    #print(node)
-    #print("\n\nRunning Interpreter!")
     while node is not None:
-        #print(repr(node))
         if (type(node) == ProgNode):
             node = progNode(node, cursor)
         elif (type(node) == PrimCmdBlock):
@@ -298,5 +353,7 @@ def run_program(db_con : sqlite3.Connection , program: str):
             node = returnBlock(node, cursor)
         elif (type(node) == ExitNode):
             node = exitBlock(node)
-    
-    return status
+    print(network.nodes())
+    for edge in network.edges(data=True):
+        print(edge)
+    return network
