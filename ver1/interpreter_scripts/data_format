@@ -1,7 +1,15 @@
+#Name of var for example is x
+
 {
   "data": "Hello World",
-  "type": "string"
-  "names": {
+  "name": "x",
+  "subdata" : { 
+    "y" : "blahblahblah"
+  }
+  "perms": {
     "alice": [ "READ",    "WRITE",    "ETC"  ]
   }
 }
+
+Data DB
+data(name, value, scope)

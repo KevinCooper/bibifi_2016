@@ -12,9 +12,9 @@ from interpreter_scripts.errors import *
 
 def do_stuff(s : socket.socket, db_con : sqlite3.Connection ,  password : str):
     #TODO: Seperate the reading of socket data from the running of a program
-    
+    #TODO: Between running each program, flush every data item where scope="local"     
 
-    with open("sample_whitespace.code", "r") as f:
+    with open("sample2.code", "r") as f:
         run_program(db_con, f.read())
 
 def handler():
@@ -44,8 +44,8 @@ def get_inputs():
 def setup_db(password: str):
     con = sqlite3.connect(':memory:')
     cursor = con.cursor()
-    cursor.execute("create table data(name, value)")
-    cursor.execute("create table users(user, password)")
+    cursor.execute("create table data(name TEXT, value TEXT, scope, TEXT)")
+    cursor.execute("create table users(user TEXT, password TEXT)")
     cursor.execute("insert into users(user, password) values (?, ?)", ("admin", password))
     #Anyone is given a password that can not ever be input.  Admin can change this later if they choose to.
     cursor.execute("insert into users(user, password) values (?, ?)", ("anyone", "@"))
@@ -75,3 +75,5 @@ if __name__=="__main__":
         else:
             print("Error")
             sys.exit(0)
+    #except Exception as e:
+    #    print(e)

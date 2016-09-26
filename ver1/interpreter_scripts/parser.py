@@ -48,6 +48,8 @@ def p_expr(p):
         p[0] = ExprNode( list() )
     elif(len(p) > 3):
         p[0] = ExprNode( p[2] )
+    else:
+        raise Exception()
     
 
 def p_fieldvals(p):
@@ -70,6 +72,7 @@ def p_value(p):
         p[0] = StringNode(str(p[1]))
     elif(len(p) == 4):
         p[0] = RecordNode(IDNode(str(p[1])), IDNode(str(p[3])))
+        print(str(p[0]))
     else:
         raise ValueError
 
@@ -149,6 +152,6 @@ class LanguageParser(object):
 if __name__=="__main__":
     my_parser = LanguageParser()
     # Build the parser
-    with open("sample.code", "r") as f:
+    with open("sample2.code", "r") as f:
         result = my_parser.parse(f.read())
         print(result)

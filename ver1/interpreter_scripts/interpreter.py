@@ -5,8 +5,8 @@ import sqlite3
 from .parser import LanguageParser
 from .errors import *
 from .ast import *
+import pickle
 import json
-
 user = ""
 local_data = {
 
@@ -32,39 +32,91 @@ def progNode(node : ProgNode, cursor : sqlite3.Cursor) :
     #Otherwise, the server terminates the connection after running <cmd> under the authority of principal p.
     return node.cmd
 
-def primSetCmd(node : SetCmd, cursor : sqlite3.Cursor):
+def has_perms(user: str, data : dict , req : list) -> bool:
+    perms = data.get("perms", None)
+    perms = perms.get(user, None)
+    if(not perms): return False #user does not exist in permission list
+    return set(req).issubset(set(perms))
+
+def get_id_data(node, user : str , cursor : sqlite3.Cursor , name : str):
+    '''
+        return: data_format of item matching name, given that user has correct permissions
+    '''
+    cursor.execute("SELECT value FROM data WHERE name = ? LIMIT 1", (name,))
+    temp = cursor.fetchone()
+    if(not temp) : raise FailError(str(node), " - setting with illegal reference to {0}".format(name))
+    data = json.loads(temp[0]) #See data_format for expected output
+    if(not has_perms(user, data, ["R"])): raise SecurityError(str(node), " - no read permission for {0}".format(name))
+    return data.get("data", None)
+
+def get_record_data(node, user : str, cursor : sqlite3.Cursor, parent : str, child : str):
+    '''
+        return: data of item matching record (x.y), given that user has correct permissions
+    '''
+    cursor.execute("SELECT value FROM data WHERE name = ? LIMIT 1", (parent,))
+    temp = cursor.fetchone()
+    if(not temp) : raise FailError(str(node), " - setting with illegal reference to {0}".format(parent))
+    data = json.loads(temp[0]) #See data_format for expected output
+    if(not has_perms(user, data, ["R"])): raise SecurityError(str(node), " - no read permission for {0}".format(parent))
+    data = data.get("subdata", None)
+    if(not data): raise FailError(str(node), " - {0} has no fields.".format(parent))
+    data = data.get(child, None)
+    if(not data): raise FailError(str(node), " - {0} is not a field for {1}.".format(child, parent))
+    return data
+
+def primSetCmd(node : SetCmd, cursor : sqlite3.Cursor, scope : str):
     global user
-    permissions = ["R", "W", "A", "D"]
     name = node.x
-    expr = str(node.expr)
-    print(name, expr)
-    mytype = ""
+    expr = node.expr.node
 
 
-    if(expr.startswith('"')):
-        mytype = "string"
-        data = expr
-    elif(expr.startswith('{')):
-        mytype = "dict"
-    else:
-        mytype = "list"
-        data = []
-
-    toStore = {
-            "data": data,
-            "type": mytype,
-            "names": {
-                "admin": [ "R", "W", "A", "D" ],
-                     },
+    #PREP DATA
+    new_data = {
+            "name":name, 
+            "perms": {"admin": ["R", "W", "A", "D"] } 
             }
 
-    cursor.execute("SELECT * FROM data WHERE name = ? LIMIT 1", (name,))
-    temp = cursor.fetchone()
+    data = None
+    if(isinstance(expr, StringNode)): #We are assigning simple stringval
+        data = expr.val
+    elif(isinstance(expr, IDNode)): #We need to reference another ID
+        data = get_id_data(node, user, cursor, expr.val)
+    elif(isinstance(expr, list)): #Setting item to empty list
+        data = []
+    elif(isinstance(expr, RecordNode)): # x.y
+        parent = expr.parent.val
+        child = expr.child.val
+        data = get_record_data(node, user, cursor, parent, child)
+    else: # Field
+        temp = expr
+        data = {}
+        while temp:
+            if(isinstance(temp.y, StringNode)):
+                data[temp.x] = temp.y.val
+            elif(isinstance(temp.y, IDNode)):
+                data[temp.x] = get_id_data(node, user, cursor, temp.y.val)
+            elif(isinstance(temp.y, RecordNode)):
+                parent = temp.y.parent.val
+                child = temp.y.child.val
+                data[temp.x] = get_record_data(node, user, cursor, parent, child)
+            else:
+                raise FailError(str(node), " - unsupported type for a fieldval")
+            temp = temp.nextNode
+        #raise ValueError("Unsupported")
 
-    if(temp):
-        pass
+    new_data['data'] = data
+    new_data = json.dumps(new_data)
+    #print(new_data)
+    #DATA UPDATE
+    cursor.execute("SELECT value FROM data WHERE name = ? LIMIT 1", (name,))
+    temp_data = cursor.fetchone()
+
+    if(temp_data):
+        temp_data = json.loads(temp_data)
+        if(not has_perms(user, temp_data, ["R", "W"])): raise SecurityError(str(node), " - no read/write permission for existing value {0}".format(name))
+        cursor.execute("UPDATE data(name, value, scope) SET value={0} WHERE name={1}", (new_data, name))
     else:
-        pass
+        cursor.execute("insert into data(name, value, scope) values (?, ?, ?)", (name, new_data, scope))
 
     #cursor.execute("UPDATE users(user, password) SET password={0} WHERE user={1}", (s, p))
 
@@ -125,8 +177,10 @@ def primCmdBlockNode(node : PrimCmdBlock, cursor : sqlite3.Cursor) :
     primcmd = node.primcmd
     cmd = node.cmd
 
-    if(type(primcmd) == SetCmd): #TODO: all
-        primSetCmd(primcmd, cursor)
+    if(type(primcmd) == SetCmd): #TODO: OUTPUT
+        primSetCmd(primcmd, cursor, "global")
+    elif(type(primcmd) == LocalCmd): #TODO: OUTPUT
+        primSetCmd(primcmd, cursor, "local")
     elif(type(primcmd) == CreateCmd): #TODO: OUTPUT
         primCreateCmd(primcmd, cursor)
     elif(type(primcmd) == ChangeCmd): #TODO: OUTPUT

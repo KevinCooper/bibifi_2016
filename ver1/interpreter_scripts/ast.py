@@ -45,7 +45,7 @@ class RecordNode(Node):
         self.child = child
 
     def __str__(self):
-        return "RECRD-"+str(self.parent) + "." + str(self.child)
+        return "RECRD:"+str(self.parent) + "." + str(self.child)
 
 class ExitNode(CmdNode):
     
@@ -71,19 +71,19 @@ class FieldValue(Node):
 
 
 class ExprNode(Node):
-    #TODO: Better fix the str and init methods.  Maybe have a type field?
-    def __init__(self, temp):
+    def __init__(self, node):
         super()
-        self.temp = temp
+        self.node = node
 
     def __str__(self):
-        #print(self.temp)
-        if(isinstance(self.temp, StringNode)):
-            return str(self.temp)
-        elif(isinstance(self.temp, list)):
-            return str(self.temp)
-        elif(isinstance(self.temp, FieldValue)):
-            return "{" + str(self.temp) + "}"
+        if(isinstance(self.node, StringNode)):
+            return str(self.node)
+        elif(isinstance(self.node, list)):
+            return str(self.node)
+        elif(isinstance(self.node, FieldValue)):
+            return "{" + str(self.node) + "}"
+        elif(isinstance(self.node, RecordNode)):
+            return str(self.node)
 
 
 
@@ -197,9 +197,3 @@ class PrimCmdBlock(Node):
 
     def __str__(self):
         return "{0} \n{1}".format(str(self.primcmd), str(self.cmd))
-
-    def execute(self):
-        self.primcmd.execute()
-        self.cmd.execute()
-
-
