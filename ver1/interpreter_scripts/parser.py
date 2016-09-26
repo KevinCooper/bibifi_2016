@@ -72,7 +72,6 @@ def p_value(p):
         p[0] = StringNode(str(p[1]))
     elif(len(p) == 4):
         p[0] = RecordNode(IDNode(str(p[1])), IDNode(str(p[3])))
-        print(str(p[0]))
     else:
         raise ValueError
 

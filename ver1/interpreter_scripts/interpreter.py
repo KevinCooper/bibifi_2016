@@ -44,10 +44,13 @@ def get_id_data(node, user : str , cursor : sqlite3.Cursor , name : str):
     '''
     cursor.execute("SELECT value FROM data WHERE name = ? LIMIT 1", (name,))
     temp = cursor.fetchone()
+    #Fails if x does not exist
     if(not temp) : raise FailError(str(node), " - setting with illegal reference to {0}".format(name))
     data = json.loads(temp[0]) #See data_format for expected output
+    #Security violation if the current principal does not have read permission on x.    
     if(not has_perms(user, data, ["R"])): raise SecurityError(str(node), " - no read permission for {0}".format(name))
-    return data.get("data", None)
+    #Returns the current value of variable x.
+    return data.get("type", None), data.get("data", None)
 
 def get_record_data(node, user : str, cursor : sqlite3.Cursor, parent : str, child : str):
     '''
@@ -55,54 +58,74 @@ def get_record_data(node, user : str, cursor : sqlite3.Cursor, parent : str, chi
     '''
     cursor.execute("SELECT value FROM data WHERE name = ? LIMIT 1", (parent,))
     temp = cursor.fetchone()
+    #Fails if x is not a record or does not have a y field.
     if(not temp) : raise FailError(str(node), " - setting with illegal reference to {0}".format(parent))
     data = json.loads(temp[0]) #See data_format for expected output
+    #Security violation if the current principal does not have read permission on x.
     if(not has_perms(user, data, ["R"])): raise SecurityError(str(node), " - no read permission for {0}".format(parent))
-    data = data.get("subdata", None)
+    data = data.get("data", None)
+    #Fails if x is not a record or does not have a y field.
     if(not data): raise FailError(str(node), " - {0} has no fields.".format(parent))
     data = data.get(child, None)
+    #Fails if x is not a record or does not have a y field.
     if(not data): raise FailError(str(node), " - {0} is not a field for {1}.".format(child, parent))
-    return data
+    #If x is a record with field y, returns the value stored in that field.
+    return "string", data
 
-def primSetCmd(node : SetCmd, cursor : sqlite3.Cursor, scope : str):
-    global user
-    name = node.x
-    expr = node.expr.node
-
-
-    #PREP DATA
-    new_data = {
-            "name":name, 
-            "perms": {"admin": ["R", "W", "A", "D"] } 
-            }
-
+def evalExpr(cursor : sqlite3.Cursor, node, user : str , expr):
+    data_type = None
     data = None
     if(isinstance(expr, StringNode)): #We are assigning simple stringval
         data = expr.val
+        data_type = "string"
     elif(isinstance(expr, IDNode)): #We need to reference another ID
-        data = get_id_data(node, user, cursor, expr.val)
+        data_type, data = get_id_data(node, user, cursor, expr.val)
     elif(isinstance(expr, list)): #Setting item to empty list
         data = []
+        data_type = "list"
     elif(isinstance(expr, RecordNode)): # x.y
         parent = expr.parent.val
         child = expr.child.val
-        data = get_record_data(node, user, cursor, parent, child)
+        data_type, data = get_record_data(node, user, cursor, parent, child)
     else: # Field
         temp = expr
         data = {}
         while temp:
+            #TODO: Fails if x1, …, xn are not unique.
             if(isinstance(temp.y, StringNode)):
                 data[temp.x] = temp.y.val
             elif(isinstance(temp.y, IDNode)):
-                data[temp.x] = get_id_data(node, user, cursor, temp.y.val)
+                data_type, data[temp.x] = get_id_data(node, user, cursor, temp.y.val)
+                #field f cannot be initialized to a non-string value.
+                if(data_type != "string"): raise FailError(str(node), " - unsupported type for a fieldval")
             elif(isinstance(temp.y, RecordNode)):
                 parent = temp.y.parent.val
                 child = temp.y.child.val
-                data[temp.x] = get_record_data(node, user, cursor, parent, child)
+                data_type, data[temp.x] = get_record_data(node, user, cursor, parent, child)
+                #field f cannot be initialized to a non-string value.
+                if(data_type != "string"): raise FailError(str(node), " - unsupported type for a fieldval")
             else:
                 raise FailError(str(node), " - unsupported type for a fieldval")
             temp = temp.nextNode
         #raise ValueError("Unsupported")
+    return data_type, data
+
+def primSetCmd(node : SetCmd, cursor : sqlite3.Cursor, scope : str):
+    #Local:
+    #    Fails if x is already defined as a local or global variable.
+    #Set:
+    #    Security violation if the current principal does not have write permission on x.
+    global user
+    name = node.x
+    expr = node.expr.node
+
+    new_data = {
+            "name":name, 
+            "perms": {"admin": ["R", "W", "A", "D"] } 
+            }
+    #PREP DATA
+    data_type, data = evalExpr(cursor, node, user, expr)
+    new_data['type'] = data_type
 
     new_data['data'] = data
     new_data = json.dumps(new_data)
@@ -111,9 +134,12 @@ def primSetCmd(node : SetCmd, cursor : sqlite3.Cursor, scope : str):
     cursor.execute("SELECT value FROM data WHERE name = ? LIMIT 1", (name,))
     temp_data = cursor.fetchone()
 
-    if(temp_data):
+    #local: Fails if x is already defined as a local or global variable.
+    if(temp_data and scope == "local"): raise SecurityError(str(node), "Already defined")
+    elif(temp_data):
         temp_data = json.loads(temp_data)
-        if(not has_perms(user, temp_data, ["R", "W"])): raise SecurityError(str(node), " - no read/write permission for existing value {0}".format(name))
+        #Set: Security violation if the current principal does not have write permission on x.
+        if(not has_perms(user, temp_data, ["W"])): raise SecurityError(str(node), " - no Write permission for existing value {0}".format(name))
         cursor.execute("UPDATE data(name, value, scope) SET value={0} WHERE name={1}", (new_data, name))
     else:
         cursor.execute("insert into data(name, value, scope) values (?, ?, ?)", (name, new_data, scope))
@@ -167,11 +193,33 @@ def primCreateCmd(node : CreateCmd, cursor : sqlite3.Cursor):
 
     cursor.execute("insert into users(user, password) values (?, ?)", (p, s))
 
-def returnBlock(node : ReturnNode):
+def returnBlock(node : ReturnNode, cursor : sqlite3.Cursor):
+    global user
+    data_type, data = evalExpr(cursor, node, user, node.expr.node)
+    print(data)
     return None
 
 def exitBlock(node : ExitNode):
     return None
+
+
+def primAppendCmd(node : AppendCmd):
+    global user
+    name = node.x
+    expr = node.expr
+
+    #Fails if x is not defined or is not a list.
+    cursor.execute("SELECT value FROM data WHERE name = ? LIMIT 1", (name,))
+    temp_data = cursor.fetchone()
+
+    #local: Fails if x is already defined as a local or global variable.
+    if(not temp_data):
+        raise FailError(str(node), " {0} is not defined".format(name))
+    elif(temp_data):
+        temp_data = json.loads(temp_data)
+        if(temp_data['type'] != 'list'): raise FailError(str(node), " {0} is not a list".format(name))
+        if(not has_perms(user, temp_data, ["W", "A"])): raise SecurityError(str(node), " - no write/append permission for existing value {0}".format(name))
+
 
 def primCmdBlockNode(node : PrimCmdBlock, cursor : sqlite3.Cursor) :
     primcmd = node.primcmd
@@ -185,25 +233,28 @@ def primCmdBlockNode(node : PrimCmdBlock, cursor : sqlite3.Cursor) :
         primCreateCmd(primcmd, cursor)
     elif(type(primcmd) == ChangeCmd): #TODO: OUTPUT
         primChangeCmd(primcmd, cursor)
+    elif(type(primcmd) == AppendCmd): #TODO: OUTPUT
+        primAppendCmd(primcmd, cursor)
     return cmd
 
 
 def run_program(db_con : sqlite3.Connection , program: str):
     my_parser = LanguageParser()
     result = my_parser.parse(program)
-    print("\n\nAST:")
-    print(result)
+    #print("\n\nAST:")
+    #print(result)
     cursor = db_con.cursor()
 
     node = result
-    print("\n\nRunning Interpreter!")
+    print(node)
+    #print("\n\nRunning Interpreter!")
     while node is not None:
-        print(repr(node))
+        #print(repr(node))
         if (type(node) == ProgNode):
             node = progNode(node, cursor)
         elif (type(node) == PrimCmdBlock):
             node = primCmdBlockNode(node, cursor)
         elif (type(node) == ReturnNode):
-            node = returnBlock(node)
+            node = returnBlock(node, cursor)
         elif (type(node) == ExitNode):
             node = exitBlock(node)

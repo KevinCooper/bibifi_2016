@@ -28,7 +28,7 @@ class IDNode(Node):
         self.val = val
 
     def __str__(self):
-        return "ID-"+self.val
+        return ""+self.val
 
 class StringNode(Node):
     def __init__(self, val : str):
@@ -36,7 +36,7 @@ class StringNode(Node):
         self.val = val
 
     def __str__(self):
-        return "STR-"+self.val
+        return ""+self.val
 
 class RecordNode(Node):
     def __init__(self, parent : IDNode, child : IDNode):
@@ -45,7 +45,7 @@ class RecordNode(Node):
         self.child = child
 
     def __str__(self):
-        return "RECRD:"+str(self.parent) + "." + str(self.child)
+        return ""+str(self.parent) + "." + str(self.child)
 
 class ExitNode(CmdNode):
     
@@ -93,7 +93,7 @@ class ReturnNode(CmdNode):
         self.expr = expr
 
     def __str__(self):
-        return "\t<CmdNode> RETURN: {0}".format(str(self.expr))
+        return "\t<Return> {0}".format(str(self.expr))
     
 class PrimCmd(Node):
     def __init__(self, ):
