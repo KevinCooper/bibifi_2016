@@ -1,5 +1,0 @@
-as principal admin password "admin" do
-   set x = "hello"
-   set y = split(x,"--")
-   set z = concat(x,y.fst)
-   return { x=x, y=y.snd, z=z }

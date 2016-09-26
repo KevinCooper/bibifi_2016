@@ -10,13 +10,20 @@ from interpreter_scripts.parser import LanguageParser
 from interpreter_scripts.interpreter import run_program
 from interpreter_scripts.errors import *
 import networkx as nx
-
+import time
+import glob
 def do_stuff(s : socket.socket, db_con : sqlite3.Connection ,  network : nx.DiGraph):
     #TODO: Seperate the reading of socket data from the running of a program
     #TODO: Between running each program, flush every data item where scope="local"     
 
-    with open("sample2.code", "r") as f:
-        print(run_program(db_con, f.read(), network))
+    for temp in glob.glob("*.code"):
+        print(temp)
+        with open(temp, "r") as f:
+            start = time.time()
+            print(run_program(db_con, f.read(), network))
+            end = time.time()
+            print(end-start)
+            db_con.rollback()
 
 def handler():
     sys.exit(0)
