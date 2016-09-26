@@ -1,0 +1,7 @@
+{
+  "data": "Hello World",
+  "type": "string"
+  "names": {
+    "alice": [ "READ",    "WRITE",    "ETC"  ]
+  }
+}
