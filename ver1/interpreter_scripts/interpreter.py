@@ -140,7 +140,7 @@ def primSetCmd(node : SetCmd, cursor : sqlite3.Cursor, scope : str):
     #local: Fails if x is already defined as a local or global variable.
     if(temp_data and scope == "local"): raise SecurityError(str(node), "Already defined")
     elif(temp_data):
-        temp_data = json.loads(temp_data)
+        temp_data = json.loads(temp_data[0])
         #Set: Security violation if the current principal does not have write permission on x.
         if(not has_perms(name, user, ["W"])): raise SecurityError(str(node), " - no Write permission for existing value {0}".format(name))
         cursor.execute("UPDATE data(name, value, scope) SET value={0} WHERE name={1}", (new_data, name))
@@ -236,14 +236,14 @@ def primAppendCmd(node : ReturnNode, cursor : sqlite3.Cursor):
     if(not temp_data):
         raise FailError(str(node), " {0} is not defined".format(name))
     elif(temp_data):
-        temp_data = json.loads(temp_data)
+        temp_data = json.loads(temp_data[0])
         #Fails if x is not a list.
         if(temp_data['type'] != 'list'): raise FailError(str(node), " {0} is not a list".format(name))
         #Security violation if the current principal does not have either write or append permission on x.
         if(not has_perms(name, user, ["W", "A"])): raise SecurityError(str(node), " - no write/append permission for existing value {0}".format(name))
         temp_data['data'].append(data)
         new_data = json.dumps(temp_data)
-        cursor.execute("UPDATE data(name, value, scope) SET value={0} WHERE name={1}", (new_data, name))
+        cursor.execute("UPDATE data SET value=? WHERE name=?",(new_data, name))
 
 def primSetDel(node: SetDel, cursor : sqlite3.Cursor):
     #set delegation <tgt> q <right> -> p

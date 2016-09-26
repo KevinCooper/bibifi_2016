@@ -85,6 +85,10 @@ class ExprNode(Node):
             return "{" + str(self.node) + "}"
         elif(isinstance(self.node, RecordNode)):
             return str(self.node)
+        elif(isinstance(self.node, IDNode)):
+            return str(self.node)
+        else:
+            raise Exception
 
 
 
