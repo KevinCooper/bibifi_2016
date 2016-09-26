@@ -2,18 +2,20 @@
 import signal
 import socket
 import sys
+import os
 import re
 import sqlite3
-
 import interpreter_scripts
 from interpreter_scripts.parser import LanguageParser
+from interpreter_scripts.interpreter import run_program
+from interpreter_scripts.errors import *
 
 def do_stuff(s : socket.socket, db_con : sqlite3.Connection ,  password : str):
-    my_parser = LanguageParser()
+    #TODO: Seperate the reading of socket data from the running of a program
+    
 
     with open("sample_whitespace.code", "r") as f:
-        result = my_parser.parse(f.read())
-        print(result)
+        run_program(db_con, f.read())
 
 def handler():
     sys.exit(0)
@@ -45,6 +47,8 @@ def setup_db(password: str):
     cursor.execute("create table data(name, value)")
     cursor.execute("create table users(user, password)")
     cursor.execute("insert into users(user, password) values (?, ?)", ("admin", password))
+    #Anyone is given a password that can not ever be input.  Admin can change this later if they choose to.
+    cursor.execute("insert into users(user, password) values (?, ?)", ("anyone", "@"))
     con.commit()
     #cursor = con.cursor()
     #cursor.execute("select * from users")
@@ -71,7 +75,3 @@ if __name__=="__main__":
         else:
             print("Error")
             sys.exit(0)
-    except Exception as e:
-        s.close()
-        print(e)
-        sys.exit(0)

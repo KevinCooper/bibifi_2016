@@ -1,12 +1,11 @@
 import re
+import ast
 
 class Node:
     def execute(self):
         raise NotImplementedError
     def __str__(self):
         return ""
-    def __repr__(self):
-        return self.__str__()
     
 
 class ProgNode(Node):
@@ -18,20 +17,35 @@ class ProgNode(Node):
 
     def __str__(self):
         return "<ProgNode> User: {0}. Pass: {1}. \n{2}".format(self.user, self.password, str(self.cmd))
-
-    def execute(self) -> bool:
-        #Setup DB Connection
-        #TODO: DB HERE
-
-        if(self.cmd.execute()):
-            pass #TODO: append json success string
-        else:
-            pass #TODO: append json failure string
         
 class CmdNode(Node):
     def __init__(self):
         super()
 
+class IDNode(Node):
+    def __init__(self, val : str):
+        super()
+        self.val = val
+
+    def __str__(self):
+        return "ID-"+self.val
+
+class StringNode(Node):
+    def __init__(self, val : str):
+        super()
+        self.val = val
+
+    def __str__(self):
+        return "STR-"+self.val
+
+class RecordNode(Node):
+    def __init__(self, parent : IDNode, child : IDNode):
+        super()
+        self.parent = parent
+        self.child = child
+
+    def __str__(self):
+        return "RECRD-"+str(self.parent) + "." + str(self.child)
 
 class ExitNode(CmdNode):
     
@@ -51,32 +65,26 @@ class FieldValue(Node):
 
     def __str__(self):
         if(self.nextNode is None):
-            return "{0} = {1}".format(self.x, self.y)
+            return "{0} = {1}".format(str(self.x), str(self.y))
         else:
-            return "{0} = {1}, {2}".format(self.x, self.y, str(self.nextNode))
-
-    def execute(self):
-        pass
+            return "{0} = {1}, {2}".format(str(self.x), str(self.y), str(self.nextNode))
 
 
 class ExprNode(Node):
     #TODO: Better fix the str and init methods.  Maybe have a type field?
     def __init__(self, temp):
         super()
-        if(isinstance(temp, str)):
-            self.temp = temp
-        elif(isinstance(temp, list)):
-            self.temp = temp
-        elif(isinstance(temp, FieldValue)):
-            self.temp = temp #TODO: Maybe create a dict() here?
+        self.temp = temp
 
     def __str__(self):
-        if(isinstance(self.temp, str)):
+        #print(self.temp)
+        if(isinstance(self.temp, StringNode)):
             return str(self.temp)
         elif(isinstance(self.temp, list)):
             return str(self.temp)
         elif(isinstance(self.temp, FieldValue)):
             return "{" + str(self.temp) + "}"
+
 
 
 class ReturnNode(CmdNode):
@@ -86,9 +94,6 @@ class ReturnNode(CmdNode):
 
     def __str__(self):
         return "\t<CmdNode> RETURN: {0}".format(str(self.expr))
-    
-    def execute(self):
-        return self.expr.execute()
     
 class PrimCmd(Node):
     def __init__(self, ):

@@ -2,11 +2,18 @@
 import ply.yacc as yacc
 
 # Get the token map from the lexer.  This is required.
-from .langlex import tokens
-from .langlex import MyLexer
-from .ast import ProgNode, CreateCmd, CmdNode, PrimCmdBlock, PrimCmd, LocalCmd
-from .ast import ExitNode, ReturnNode, ExprNode, FieldValue
-from .ast import ChangeCmd, SetCmd, AppendCmd, SetDel, DelDel, DefaultCmd, ForEachCmd
+try:
+    from .langlex import tokens
+    from .langlex import MyLexer
+    from .ast import ProgNode, CreateCmd, CmdNode, PrimCmdBlock, PrimCmd, LocalCmd
+    from .ast import ExitNode, ReturnNode, ExprNode, FieldValue, StringNode, IDNode, RecordNode
+    from .ast import ChangeCmd, SetCmd, AppendCmd, SetDel, DelDel, DefaultCmd, ForEachCmd
+except Exception as e:
+    from interpreter_scripts.langlex import tokens
+    from interpreter_scripts.langlex import MyLexer
+    from interpreter_scripts.ast import ProgNode, CreateCmd, CmdNode, PrimCmdBlock, PrimCmd, LocalCmd
+    from interpreter_scripts.ast import ExitNode, ReturnNode, ExprNode, FieldValue, StringNode, IDNode, RecordNode
+    from interpreter_scripts.ast import ChangeCmd, SetCmd, AppendCmd, SetDel, DelDel, DefaultCmd, ForEachCmd
 start = 'prog'
 
 def p_prog(p):
@@ -57,10 +64,12 @@ def p_value(p):
               | ID PERIOD ID
               | USER
     '''
-    if(len(p) == 2):
-        p[0] = str(p[1])
+    if(len(p) == 2 and not str(p[1]).startswith('"')):
+        p[0] = IDNode(str(p[1]))
+    elif(len(p) == 2 and str(p[1]).startswith('"')):
+        p[0] = StringNode(str(p[1]))
     elif(len(p) == 4):
-        p[0] = str(p[1]) + "." + str(p[3])
+        p[0] = RecordNode(IDNode(str(p[1])), IDNode(str(p[3])))
     else:
         raise ValueError
 
