@@ -8,12 +8,7 @@ from .ast import *
 import pickle
 import json
 user = ""
-local_data = {
-
-}
-prog_data = {
-
-}
+status = []
 def progNode(node : ProgNode, cursor : sqlite3.Cursor) :
     global user
     user = node.user
@@ -115,7 +110,7 @@ def primSetCmd(node : SetCmd, cursor : sqlite3.Cursor, scope : str):
     #    Fails if x is already defined as a local or global variable.
     #Set:
     #    Security violation if the current principal does not have write permission on x.
-    global user
+    global user, status
     name = node.x
     expr = node.expr.node
 
@@ -143,7 +138,7 @@ def primSetCmd(node : SetCmd, cursor : sqlite3.Cursor, scope : str):
         cursor.execute("UPDATE data(name, value, scope) SET value={0} WHERE name={1}", (new_data, name))
     else:
         cursor.execute("insert into data(name, value, scope) values (?, ?, ?)", (name, new_data, scope))
-
+    status.append({"status":"SET"})
     #cursor.execute("UPDATE users(user, password) SET password={0} WHERE user={1}", (s, p))
 
 def primChangeCmd(node : CreateCmd, cursor : sqlite3.Cursor):
@@ -154,7 +149,7 @@ def primChangeCmd(node : CreateCmd, cursor : sqlite3.Cursor):
     Successful status code: 
         CREATE_PRINCIPAL
     '''
-    global user
+    global user, status
     p = node.p
     s = node.s.replace('"', "")
 
@@ -169,6 +164,7 @@ def primChangeCmd(node : CreateCmd, cursor : sqlite3.Cursor):
 
     #TODO: Check vulnerability
     cursor.execute("UPDATE users(user, password) SET password={0} WHERE user={1}", (s, p))
+    status.append({"status":"CHANGE_PASSWORD"})
 
 def primCreateCmd(node : CreateCmd, cursor : sqlite3.Cursor):
     ''' create principal p s  #s surrounded by double quotes
@@ -192,34 +188,74 @@ def primCreateCmd(node : CreateCmd, cursor : sqlite3.Cursor):
         raise FailError("{0}".format(user), " already exists")
 
     cursor.execute("insert into users(user, password) values (?, ?)", (p, s))
+    status.append({"status":"CREATE_PRINCIPAL"})
 
 def returnBlock(node : ReturnNode, cursor : sqlite3.Cursor):
-    global user
+    global user, status
     data_type, data = evalExpr(cursor, node, user, node.expr.node)
-    print(data)
+    status.append({"status":"RETURNING", "output":data})
     return None
 
 def exitBlock(node : ExitNode):
+    global status
+    status.append({"status":"EXITING"})
     return None
 
 
-def primAppendCmd(node : AppendCmd):
+def primAppendCmd(node : ReturnNode, cursor : sqlite3.Cursor):
     global user
     name = node.x
-    expr = node.expr
+    expr = node.expr.node
+
+    data_type, data = evalExpr(cursor, node, user, expr)
 
     #Fails if x is not defined or is not a list.
     cursor.execute("SELECT value FROM data WHERE name = ? LIMIT 1", (name,))
     temp_data = cursor.fetchone()
 
-    #local: Fails if x is already defined as a local or global variable.
+    #local: Fails if x is not already defined as a local or global variable.
     if(not temp_data):
         raise FailError(str(node), " {0} is not defined".format(name))
     elif(temp_data):
         temp_data = json.loads(temp_data)
+        #Fails if x is not a list.
         if(temp_data['type'] != 'list'): raise FailError(str(node), " {0} is not a list".format(name))
+        #Security violation if the current principal does not have either write or append permission on x.
         if(not has_perms(user, temp_data, ["W", "A"])): raise SecurityError(str(node), " - no write/append permission for existing value {0}".format(name))
+        temp_data['data'].append(data)
+        new_data = json.dumps(temp_data)
+        cursor.execute("UPDATE data(name, value, scope) SET value={0} WHERE name={1}", (new_data, name))
 
+def primSetDel(node: SetDel, cursor : sqlite3.Cursor):
+    global user, status
+    target = node.tgt
+    src_user = node.src_id
+    right = node.right
+    dst_user = node.dst_id
+
+    #set delegation x p <right> -> q requires that, if x is a "normal" variable, the current principal be either admin or p.
+    #If the latter, p must have delegate permission on x.
+    if(user != "admin" and user != src_user and target != "all"): raise FailError(str(node), " cannot give another users rights away")
+    #Do we need to check src user, since we can't be running as him if he doesn't exist?
+    cursor.execute("SELECT * FROM users WHERE user = ? LIMIT 1", (src_user,))
+    temp_data = cursor.fetchone()
+    if(not temp_data): raise FailError(str(node), " giving user does not exist")
+    cursor.execute("SELECT * FROM users WHERE user = ? LIMIT 1", (dst_user,))
+    temp_data = cursor.fetchone()
+    if(not temp_data): raise FailError(str(node), " receiving user does not exist")
+
+
+    status.append({"status":"SET_DELEGATION"})
+    
+
+def primDelDel(node: SetDel, cursor : sqlite3.Cursor):
+    global user, status
+    target = node.tgt
+    src_user = node.src_id
+    right = node.right
+    dst_user = node.dst_id
+
+    status.append({"status":"DELETE_DELEGATION"})
 
 def primCmdBlockNode(node : PrimCmdBlock, cursor : sqlite3.Cursor) :
     primcmd = node.primcmd
@@ -235,6 +271,10 @@ def primCmdBlockNode(node : PrimCmdBlock, cursor : sqlite3.Cursor) :
         primChangeCmd(primcmd, cursor)
     elif(type(primcmd) == AppendCmd): #TODO: OUTPUT
         primAppendCmd(primcmd, cursor)
+    elif(type(primcmd) == SetDel):
+        primSetDel(primcmd, cursor)
+    elif(type(primcmd) == DelDel):
+        primDetDel(primcmd, cursor)
     return cmd
 
 
@@ -246,7 +286,7 @@ def run_program(db_con : sqlite3.Connection , program: str):
     cursor = db_con.cursor()
 
     node = result
-    print(node)
+    #print(node)
     #print("\n\nRunning Interpreter!")
     while node is not None:
         #print(repr(node))
@@ -258,3 +298,5 @@ def run_program(db_con : sqlite3.Connection , program: str):
             node = returnBlock(node, cursor)
         elif (type(node) == ExitNode):
             node = exitBlock(node)
+    
+    return status

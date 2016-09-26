@@ -33,7 +33,8 @@ class IDNode(Node):
 class StringNode(Node):
     def __init__(self, val : str):
         super()
-        self.val = val
+        #TODO: Should quotes be removed here
+        self.val = val.replace('"', "")
 
     def __str__(self):
         return ""+self.val

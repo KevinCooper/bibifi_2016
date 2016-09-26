@@ -15,7 +15,7 @@ def do_stuff(s : socket.socket, db_con : sqlite3.Connection ,  password : str):
     #TODO: Between running each program, flush every data item where scope="local"     
 
     with open("sample2.code", "r") as f:
-        run_program(db_con, f.read())
+        print(run_program(db_con, f.read()))
 
 def handler():
     sys.exit(0)
