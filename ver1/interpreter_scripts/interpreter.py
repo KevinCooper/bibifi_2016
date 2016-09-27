@@ -51,7 +51,8 @@ def has_perms(name: str, user: str, reqs : list) -> bool:
                 G.remove_edge(*edge[:2])
                 continue
             #Edge isn't to our desired item, need delegate access
-            elif(set(edge[2]).issuperset(del_req)):
+            #Can't have delegated access from user -> item
+            elif(edge[1] != name and not set(edge[2]).issuperset(del_req)):
                 G.remove_edge(*edge[:2])
                 continue
         
@@ -162,7 +163,7 @@ def primSetCmd(node : SetCmd, cursor : sqlite3.Cursor, scope : str):
         temp_data = json.loads(temp_data[0])
         #Set: Security violation if the current principal does not have write permission on x.
         if(not has_perms(name, user, ["write"])): raise SecurityError(str(node), " - no Write permission for existing value {0}".format(name))
-        cursor.execute("UPDATE data(name, value, scope) SET value={0} WHERE name={1}", (new_data, name))
+        cursor.execute("UPDATE data SET value=? WHERE name=?",(new_data, name))
     else:
         cursor.execute("insert into data(name, value, scope) values (?, ?, ?)", (name, new_data, scope))
         #TODO: cleanse locals at end of run from network
@@ -216,14 +217,14 @@ def primCreateCmd(node : CreateCmd, cursor : sqlite3.Cursor):
     new_user = node.p
     s = node.s.replace('"', "")
 
-    if(user != "admin"): #Security violation if the current principal is not admin.
-        raise SecurityError("{0}".format(user), " is not the administrator")
+    #Security violation if the current principal is not admin.
+    if(user != "admin"): raise SecurityError("{0}".format(user), " is not the administrator")
 
     cursor.execute("SELECT * FROM users WHERE user = ? LIMIT 1", (new_user,))
     temp = cursor.fetchone()
 
-    if(temp): #Fails if p already exists as a principal.
-        raise FailError("{0}".format(user), " already exists")
+    #Fails if p already exists as a principal.
+    if(temp): raise FailError("{0}".format(user), " already exists")
 
     cursor.execute("insert into users(user, password) values (?, ?)", (new_user, s))
     network.add_node(new_user)
@@ -400,11 +401,14 @@ def run_program(db_con : sqlite3.Connection , program: str, in_network : nx.DiGr
     except FailError as e:
         network = backup
         status.append({"status":"FAILED"})
+        print(e)
     except SecurityError as e:
         network = backup
-        status.append({"status":"FAILED"})
+        status.append({"status":"DENIED"})
+        print(e)
     except ParseError as e:
-        status.append({"status":"FAILED"})
+        status = [{"status":"FAILED"}]
+        print(e)
     except ExitError as e:
         ending = True
     
