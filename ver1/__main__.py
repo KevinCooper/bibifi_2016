@@ -34,6 +34,8 @@ def handle_progs(s : socket.socket, db_con : sqlite3.Connection ,  network : nx.
         conn, addr = s.accept()
         print("Conn from:" + str(addr))
         data = recv_until_prog_end(conn)
+        with open("/tmp/aaaa", "a") as f:
+            f.write(data)
         #print(repr(data))
 
         start = time.time()
@@ -106,6 +108,10 @@ def setup_db(password: str, network : nx.DiGraph ):
 
 
 if __name__=="__main__":
+    #DEBUG
+    with open("/tmp/aaaa", "w") as f:
+        f.write("\n")
+
     original_sigint = signal.getsignal(signal.SIGINT)
     signal.signal(signal.SIGTERM, handler)
 
