@@ -12,27 +12,58 @@ from interpreter_scripts.errors import *
 import networkx as nx
 import time
 import glob
-def do_stuff(s : socket.socket, db_con : sqlite3.Connection ,  network : nx.DiGraph):
-    #TODO: Seperate the reading of socket data from the running of a program
-    #TODO: Between running each program, flush every data item where scope="local"     
 
-    for temp in glob.glob("run_samples\*.code"):
-        print(temp)
-        with open(temp, "r") as f:
-            start = time.time()
-            network, status = run_program(db_con, f.read(), network)
-            print(status)
-            end = time.time()
-            print(end-start)
-            if(status and status[-1].get('status') == "FAILED" or status[-1].get('status') == "DENIED"):
-                print("here")
-                db_con.rollback()
-            else:
-                db_con.commit()
+def recv_until_prog_end(s: socket.socket):
+    buffer = ""
+    data = ""
+    while True:
+        data += s.recv(1024).decode('ascii')
+        if not data:
+            break
+        buffer += data
+        if("***" in buffer):
+            break
+
+    return buffer
+
+
+
+def handle_progs(s : socket.socket, db_con : sqlite3.Connection ,  network : nx.DiGraph):
+    while True:
+        conn, addr = s.accept()
+        print("Conn from:" + str(addr))
+        data = recv_until_prog_end(conn)
+        print(repr(data))
+
+        start = time.time()
+        network, status = run_program(db_con, data, network)
+        end = time.time()
+
+        if(status and status[-1].get('status') == "FAILED" or status[-1].get('status') == "DENIED"):
+            db_con.rollback()
+        else:
+            cursor = db_con.cursor()
+            #Delete local data from DB
+            cursor.execute("DELETE FROM data WHERE scope=?", ("local",))
+            db_con.commit()
+
+            #Delete local from permissions network
+            for node in network.nodes(data=True):
+                if(node[1].get("scope", "global") == "local"):
+                    network.remove_node(node)
+
+        print("\n\n")
+        print(status)
+        status = [str(item) for item in status ]
+        conn.sendall(("\n".join(status)).encode('ascii'))
+        conn.close()
+
             
             
 
 def handler():
+    signal.signal(signal.SIGINT, original_sigint)
+    print('You pressed Ctrl+C!')
     sys.exit(0)
 
 def get_inputs():
@@ -72,6 +103,7 @@ def setup_db(password: str, network : nx.DiGraph ):
 
 if __name__=="__main__":
 
+    original_sigint = signal.getsignal(signal.SIGINT)
     signal.signal(signal.SIGTERM, handler)
 
     password, port = get_inputs()
@@ -80,16 +112,20 @@ if __name__=="__main__":
 
     db_con = setup_db(password, network)
 
-    s = socket.socket()
-    
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)   
     try:
-        s.bind(("127.0.0.1", port))
-        do_stuff(s, db_con, network)
+        s.bind(("", port))
+        s.listen(1)
+        handle_progs(s, db_con, network)
     except socket.error as e:
         if e.errno == 98:
             sys.exit(63)
         else:
             print("Error")
+            raise(e)
             sys.exit(0)
+    except KeyboardInterrupt:
+        handler()
     #except Exception as e:
     #    print(e)
