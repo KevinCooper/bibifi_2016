@@ -8,12 +8,14 @@ try:
     from .ast import ProgNode, CreateCmd, CmdNode, PrimCmdBlock, PrimCmd, LocalCmd
     from .ast import ExitNode, ReturnNode, ExprNode, FieldValue, StringNode, IDNode, RecordNode
     from .ast import ChangeCmd, SetCmd, AppendCmd, SetDel, DelDel, DefaultCmd, ForEachCmd
+    from .errors import ParseError
 except Exception as e:
     from interpreter_scripts.langlex import tokens
     from interpreter_scripts.langlex import MyLexer
     from interpreter_scripts.ast import ProgNode, CreateCmd, CmdNode, PrimCmdBlock, PrimCmd, LocalCmd
     from interpreter_scripts.ast import ExitNode, ReturnNode, ExprNode, FieldValue, StringNode, IDNode, RecordNode
     from interpreter_scripts.ast import ChangeCmd, SetCmd, AppendCmd, SetDel, DelDel, DefaultCmd, ForEachCmd
+    from interpreter_scripts.errors import ParseError
 start = 'prog'
 
 def p_prog(p):
@@ -130,6 +132,7 @@ def p_error(p):
     else:
         print("Syntax error in input!")
         print(p)
+    raise ParseError(str(p), " found an invalid token.")
 
 class LanguageParser(object):
     def __init__(self, lexer=None):

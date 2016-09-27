@@ -29,14 +29,17 @@ def recv_until_prog_end(s: socket.socket):
 
 
 def handle_progs(s : socket.socket, db_con : sqlite3.Connection ,  network : nx.DiGraph):
-    while True:
+    ending = False
+    while not ending:
         conn, addr = s.accept()
         print("Conn from:" + str(addr))
         data = recv_until_prog_end(conn)
-        print(repr(data))
+        #print(repr(data))
 
         start = time.time()
-        network, status = run_program(db_con, data, network)
+
+        network, status, ending = run_program(db_con, data, network)
+
         end = time.time()
 
         if(status and status[-1].get('status') == "FAILED" or status[-1].get('status') == "DENIED"):
@@ -52,9 +55,10 @@ def handle_progs(s : socket.socket, db_con : sqlite3.Connection ,  network : nx.
                 if(node[1].get("scope", "global") == "local"):
                     network.remove_node(node)
 
-        print("\n\n")
-        print(status)
         status = [str(item) for item in status ]
+        #print("\n\n")
+        #print(str(status)+"\n"+str(end-start))
+        print("Time:" + str(end-start))
         conn.sendall(("\n".join(status)).encode('ascii'))
         conn.close()
 

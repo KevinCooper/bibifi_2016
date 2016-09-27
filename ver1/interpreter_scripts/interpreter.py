@@ -8,7 +8,7 @@ from .ast import *
 import pickle
 import json
 import networkx as nx
-
+import time
 
 user = ""
 status = []
@@ -237,7 +237,7 @@ def returnBlock(node : ReturnNode, cursor : sqlite3.Cursor):
 def exitBlock(node : ExitNode):
     global status
     status.append({"status":"EXITING"})
-    return None
+    raise ExitError()
 
 
 def primAppendCmd(node : ReturnNode, cursor : sqlite3.Cursor):
@@ -246,7 +246,8 @@ def primAppendCmd(node : ReturnNode, cursor : sqlite3.Cursor):
     expr = node.expr.node
 
     data_type, data = evalExpr(cursor, node, user, expr)
-
+    #print(data)
+    #time.sleep(5)
     #Fails if x is not defined or is not a list.
     cursor.execute("SELECT value FROM data WHERE name = ? LIMIT 1", (name,))
     temp_data = cursor.fetchone()
@@ -260,7 +261,9 @@ def primAppendCmd(node : ReturnNode, cursor : sqlite3.Cursor):
         if(temp_data['type'] != 'list'): raise FailError(str(node), " {0} is not a list".format(name))
         #Security violation if the current principal does not have either write or append permission on x.
         if(not has_perms(name, user, ["write", "append"])): raise SecurityError(str(node), " - no write/append permission for existing value {0}".format(name))
-        temp_data['data'].append(data)
+        temp_data['data'].extend(data)
+        #print(temp_data)
+        #time.sleep(10)
         new_data = json.dumps(temp_data)
         cursor.execute("UPDATE data SET value=? WHERE name=?",(new_data, name))
 
@@ -354,9 +357,10 @@ def primCmdBlockNode(node : PrimCmdBlock, cursor : sqlite3.Cursor) :
 
 def run_program(db_con : sqlite3.Connection , program: str, in_network : nx.DiGraph ):
     global network, status
+    status = []
     network = in_network
     backup = network.copy()
-
+    ending = False
     try:
         my_parser = LanguageParser()
         result = my_parser.parse(program)
@@ -378,5 +382,9 @@ def run_program(db_con : sqlite3.Connection , program: str, in_network : nx.DiGr
     except SecurityError as e:
         network = backup
         status.append({"status":"FAILED"})
+    except ParseError as e:
+        status.append({"status":"FAILED"})
+    except ExitError as e:
+        ending = True
     
-    return network, status
+    return network, status, ending

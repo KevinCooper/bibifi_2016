@@ -12,5 +12,6 @@ if __name__=="__main__":
             s.connect(('127.0.0.1', 1024))
             s.sendall(f.read().encode('ascii'))
             print("GOT:")
-            print(s.recv(100000).decode('ascii'))
+            x = s.recv(1024*1024*1024).decode('ascii')
+            print(x[1:1000])
             print("")

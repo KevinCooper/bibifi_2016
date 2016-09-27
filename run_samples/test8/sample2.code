@@ -1,0 +1,5 @@
+    as   principal  admin password "admin"  do    
+      set AA_019a6___ = "abc12;---.?...xxxXXXZ__!!" //This IS___an ASSIGNMENT123 ?--;,.
+// a comment on a line on its own
+      return   AA_019a6___ // final result!        
+    ***

@@ -67,7 +67,8 @@ def t_USER(t):
     return t
 
 def t_COMMENT(t):
-    r'[\/][\/][A-Za-z0-9_ ,;\\.?\-!]*$'
+    r'//[A-Za-z0-9_ ,;\\.?\-!]*'
+    #TODO: Ensure matches all comment cases
     pass
     # No return value. Token discarded
 

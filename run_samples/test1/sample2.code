@@ -1,4 +1,3 @@
-as principal bob password "bob" do
-   set msg = "This should not work!"
-   return "success"
+as principal bob password "B0BPWxxd" do
+return x
 ***
