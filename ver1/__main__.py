@@ -17,7 +17,11 @@ def recv_until_prog_end(s: socket.socket):
     buffer = ""
     data = ""
     while True:
-        data += s.recv(1024).decode('ascii')
+        try:
+            data += s.recv(1024).decode('ascii')
+        except Exception as e:
+            with open("/tmp/aaaa", "a") as f:
+                f.write(str(e))
         if not data:
             break
         buffer += data
