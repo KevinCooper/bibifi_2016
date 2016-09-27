@@ -1,0 +1,4 @@
+#!/bin/bash
+echo $0 $1 $2
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+python3 $DIR"/ver1/" $1 $2 

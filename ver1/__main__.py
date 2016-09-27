@@ -56,9 +56,10 @@ def handle_progs(s : socket.socket, db_con : sqlite3.Connection ,  network : nx.
                     network.remove_node(node)
 
         status = [str(item) for item in status ]
-        #print("\n\n")
-        #print(str(status)+"\n"+str(end-start))
-        print("Time:" + str(end-start))
+#	with open("/tmp/a", "a") as f:
+#            f.write("\n\n")
+#            f.write(str(status)+"\n"+str(end-start))
+#        print("Time:" + str(end-start))
         conn.sendall(("\n".join(status)).encode('ascii'))
         conn.close()
 
@@ -67,7 +68,6 @@ def handle_progs(s : socket.socket, db_con : sqlite3.Connection ,  network : nx.
 
 def handler():
     signal.signal(signal.SIGINT, original_sigint)
-    print('You pressed Ctrl+C!')
     sys.exit(0)
 
 def get_inputs():
@@ -106,7 +106,6 @@ def setup_db(password: str, network : nx.DiGraph ):
 
 
 if __name__=="__main__":
-
     original_sigint = signal.getsignal(signal.SIGINT)
     signal.signal(signal.SIGTERM, handler)
 
