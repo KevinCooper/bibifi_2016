@@ -43,7 +43,6 @@ def p_expr(p):
             | LBRACK RBRACK
             | LBRACE fieldvals RBRACE 
     '''
-    #TODO: 3 checks
     if(len(p) == 2):
         p[0] = ExprNode( p[1] )
     elif(len(p) == 3):
@@ -51,7 +50,7 @@ def p_expr(p):
     elif(len(p) > 3):
         p[0] = ExprNode( p[2] )
     else:
-        raise Exception()
+        raise Exception
     
 
 def p_fieldvals(p):

@@ -211,6 +211,7 @@ def primCreateCmd(node : CreateCmd, cursor : sqlite3.Cursor):
     Successful status code: 
         CREATE_PRINCIPAL
     '''
+    #TODO: Perms from the default delegator
     global user, network
     new_user = node.p
     s = node.s.replace('"', "")
@@ -334,24 +335,44 @@ def primDelDel(node: SetDel, cursor : sqlite3.Cursor):
 
     status.append({"status":"DELETE_DELEGATION"})
 
+def primSetDef(primcmd, cursor):
+    global user, status
+
+    name = primcmd.x
+
+    #Fails if p does not exist.
+    cursor.execute("SELECT * FROM users WHERE user = ? LIMIT 1", (name,))
+    temp_data = cursor.fetchone()
+    if(not temp_data): raise FailError(str(node), " user does not exist")
+
+    #Security violation if the current principal is not admin.
+    if(user != "admin"): raise SecurityError(str(node), " user must be admin")
+
+
+    #TODO: Default Del
+
+    status.append({"status":"DEFAULT_DELEGATOR"})
+
 def primCmdBlockNode(node : PrimCmdBlock, cursor : sqlite3.Cursor) :
     primcmd = node.primcmd
     cmd = node.cmd
 
-    if(type(primcmd) == SetCmd): #TODO: OUTPUT
+    if(type(primcmd) == SetCmd): 
         primSetCmd(primcmd, cursor, "global")
-    elif(type(primcmd) == LocalCmd): #TODO: OUTPUT
+    elif(type(primcmd) == LocalCmd): 
         primSetCmd(primcmd, cursor, "local")
-    elif(type(primcmd) == CreateCmd): #TODO: OUTPUT
+    elif(type(primcmd) == CreateCmd): 
         primCreateCmd(primcmd, cursor)
-    elif(type(primcmd) == ChangeCmd): #TODO: OUTPUT
+    elif(type(primcmd) == ChangeCmd): 
         primChangeCmd(primcmd, cursor)
-    elif(type(primcmd) == AppendCmd): #TODO: OUTPUT
+    elif(type(primcmd) == AppendCmd): 
         primAppendCmd(primcmd, cursor)
     elif(type(primcmd) == SetDel):
         primSetDel(primcmd, cursor)
     elif(type(primcmd) == DelDel):
         primDetDel(primcmd, cursor)
+    elif(type(primcmd) == DefaultCmd):
+        primSetDef(primcmd, cursor)
     return cmd
 
 
