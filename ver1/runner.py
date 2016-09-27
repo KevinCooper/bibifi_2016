@@ -16,14 +16,21 @@ def do_stuff(s : socket.socket, db_con : sqlite3.Connection ,  network : nx.DiGr
     #TODO: Seperate the reading of socket data from the running of a program
     #TODO: Between running each program, flush every data item where scope="local"     
 
-    for temp in glob.glob("*.code"):
+    for temp in glob.glob("run_samples\*.code"):
         print(temp)
         with open(temp, "r") as f:
             start = time.time()
-            print(run_program(db_con, f.read(), network))
+            network, status = run_program(db_con, f.read(), network)
+            print(status)
             end = time.time()
             print(end-start)
-            db_con.rollback()
+            if(status and status[-1].get('status') == "FAILED" or status[-1].get('status') == "DENIED"):
+                print("here")
+                db_con.rollback()
+            else:
+                db_con.commit()
+            
+            
 
 def handler():
     sys.exit(0)
