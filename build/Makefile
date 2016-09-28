@@ -1,3 +1,3 @@
 all:
-        touch temp
-        rm temp
+    touch temp
+    rm temp
