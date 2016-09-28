@@ -53,7 +53,7 @@ def handle_progs(s : socket.socket, db_con : sqlite3.Connection ,  network : nx.
             for node in network.nodes(data=True):
                 #node[0] = nodeName, node[1]= dict of node data
                 if(node[1].get("scope", "global") == "local"):
-                    network.remove_node(node)
+                    network.remove_node(node[0])
 
         status = json.dumps(status)
         conn.sendall(status.encode('ascii'))

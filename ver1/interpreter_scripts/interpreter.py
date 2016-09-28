@@ -114,7 +114,7 @@ def evalExpr(cursor : sqlite3.Cursor, node, user : str , expr):
         parent = expr.parent.val
         child = expr.child.val
         data_type, data = get_record_data(node, user, cursor, parent, child)
-    else: # Field
+    elif(isinstance(expr, FieldValue)): # Field
         temp = expr
         data = {}
         while temp:
@@ -134,7 +134,8 @@ def evalExpr(cursor : sqlite3.Cursor, node, user : str , expr):
             else:
                 raise FailError(str(node), " - unsupported type for a fieldval")
             temp = temp.nextNode
-        #raise ValueError("Unsupported")
+        data_type = "record"
+
     return data_type, data
 
 def primSetCmd(node : SetCmd, cursor : sqlite3.Cursor, scope : str):
@@ -256,9 +257,8 @@ def primAppendCmd(node : ReturnNode, cursor : sqlite3.Cursor):
     global user
     name = node.x
     expr = node.expr.node
-
     data_type, data = evalExpr(cursor, node, user, expr)
-    #Fails if x is not defined or is not a list.
+    #Fails if x is not defined or is not a list (see below).
     cursor.execute("SELECT value FROM data WHERE name = ? LIMIT 1", (name,))
     temp_data = cursor.fetchone()
 
@@ -271,11 +271,13 @@ def primAppendCmd(node : ReturnNode, cursor : sqlite3.Cursor):
         if(temp_data['type'] != 'list'): raise FailError(str(node), " {0} is not a list".format(name))
         #Security violation if the current principal does not have either write or append permission on x.
         if(not has_perms(name, user, ["write", "append"])): raise SecurityError(str(node), " - no write/append permission for existing value {0}".format(name))
-        temp_data['data'].extend(data)
-        #print(temp_data)
-        #time.sleep(10)
+        if(data_type != "list"):
+            temp_data['data'].extend([data])
+        else:
+            temp_data['data'].extend(data)
         new_data = json.dumps(temp_data)
         cursor.execute("UPDATE data SET value=? WHERE name=?",(new_data, name))
+    status.append({"status":"APPEND"})
 
 def primSetDel(node: SetDel, cursor : sqlite3.Cursor):
     #set delegation <tgt> q <right> -> p
@@ -318,7 +320,7 @@ def primSetDel(node: SetDel, cursor : sqlite3.Cursor):
     status.append({"status":"SET_DELEGATION"})
     
 
-def primDelDel(node: SetDel, cursor : sqlite3.Cursor):
+def primDelDel(node: DelDel, cursor : sqlite3.Cursor):
     #delete delegation <tgt> q <right> -> p 
     #                  tgt  src right  -> dst
     global user, status
@@ -358,10 +360,10 @@ def primDelDel(node: SetDel, cursor : sqlite3.Cursor):
 
     status.append({"status":"DELETE_DELEGATION"})
 
-def primSetDef(primcmd, cursor):
+def primSetDef(node : DefaultCmd, cursor):
     global user, status, network
 
-    name = primcmd.x
+    name = node.x
 
     #Fails if p does not exist.
     cursor.execute("SELECT * FROM users WHERE user = ? LIMIT 1", (name,))
@@ -374,6 +376,68 @@ def primSetDef(primcmd, cursor):
     network.node["@default"]['value'] = name
 
     status.append({"status":"DEFAULT_DELEGATOR"})
+
+def primForEach(node : ForEachCmd, cursor):
+    #foreach y in x replacewith <expr>
+    global user, status, network
+    item = node.y
+    name = node.x
+    expr = node.expr.node
+
+    #Fails if x is not defined
+    cursor.execute("SELECT value FROM data WHERE name = ? LIMIT 1", (name,))
+    temp_data = cursor.fetchone()
+    if(not temp_data): raise FailError(str(node), " {0} is not defined".format(name))
+
+    #Fails if x is not a list.
+    temp_data = json.loads(temp_data[0])
+    if(temp_data['type'] != 'list'): raise FailError(str(node), " {0} is not a list".format(name))
+
+    #Fails if y is already defined as a local or global variable.
+    cursor.execute("SELECT value FROM data WHERE name = ? LIMIT 1", (item,))
+    temp = cursor.fetchone()
+    if(temp): raise FailError(str(node), " {0} is already defined".format(item))
+
+    #Security violation if the current principal does not have read/write permission on x.
+    if(not has_perms(name, user, ["read", "write"])): raise SecurityError(str(node), " - no read/write permission for {0}".format(name))
+
+
+    #To do this properly would require a clusterfuck of code
+    #Aka, instantiating the rec variable from item in list, getting possible
+    #subfields, then rebuilding a new list and returning that.  Just check for
+    #The possible data types, an ID, String, Subfield.  We can cheat on the subfield
+    #Since it has to be an attribute of records in our array (not any possible globa dict)
+    
+    #Data is a list of whatever
+    data = list(temp_data['data'])
+
+    for index, element in enumerate(data):
+        #Instantiate y
+        #TODO: what other types are there? List?
+        to_insert = { 'name' : item, 'data' : element, 'type' : 'string'}
+        cursor.execute("insert into data(name, value, scope) values (?, ?, ?)", (item, json.dumps(to_insert), "local"))
+        network.add_node(item, scope="local")
+        if(user != "admin"):
+            network[user]["admin"] = set(["delegate:read:"+item, "delegate:write:"+item, "delegate:append:"+item, "delegate:delegate:"+item])
+        network["admin"][item] = set(["read", "write", "append", "delegate"])
+
+        
+        _, temp = evalExpr(cursor, node, user, expr)
+        data[index] = temp
+
+        #remove Node
+        network.remove_node(item)
+        #remove Instantiation
+        cursor.execute("DELETE FROM data WHERE name=?", (item,))
+
+    #DATA UPDATE
+    temp_data['data'] = data
+    temp_data = json.dumps(temp_data)
+    cursor.execute("UPDATE data SET value=? WHERE name=?",(temp_data, name))
+
+
+    status.append({"status":"FOREACH"})
+
 
 def primCmdBlockNode(node : PrimCmdBlock, cursor : sqlite3.Cursor) :
     primcmd = node.primcmd
@@ -395,6 +459,8 @@ def primCmdBlockNode(node : PrimCmdBlock, cursor : sqlite3.Cursor) :
         primDetDel(primcmd, cursor)
     elif(type(primcmd) == DefaultCmd):
         primSetDef(primcmd, cursor)
+    elif(type(primcmd) == ForEachCmd):
+        primForEach(primcmd, cursor)
     return cmd
 
 

@@ -4,5 +4,5 @@ as principal admin password "admin" do
    set x2 = x
    set y = { f1 = x, f2 = "field2" }
    set delegation x admin read -> bob
-   return y.f1
+   return y
 ***
