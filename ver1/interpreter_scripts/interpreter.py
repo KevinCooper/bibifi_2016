@@ -41,6 +41,10 @@ def has_perms(name: str, user: str, reqs : list) -> bool:
         we could just remove items from each set aren't what we need, then if the edge has an empty set
         then delete it.  That would only require one pass maybe
     '''
+
+    #ADMIN IS GOD
+    if(user == "admin"): return True
+
     for req in reqs:
         G = network.copy()
         del_req = set(["delegate:"+req+":"+name])
@@ -254,8 +258,6 @@ def primAppendCmd(node : ReturnNode, cursor : sqlite3.Cursor):
     expr = node.expr.node
 
     data_type, data = evalExpr(cursor, node, user, expr)
-    #print(data)
-    #time.sleep(5)
     #Fails if x is not defined or is not a list.
     cursor.execute("SELECT value FROM data WHERE name = ? LIMIT 1", (name,))
     temp_data = cursor.fetchone()
@@ -302,7 +304,7 @@ def primSetDel(node: SetDel, cursor : sqlite3.Cursor):
         #TODO: implement
         pass
     else:
-        #TODO: Security Violation if if q does not have delegate permission on x, when <tgt> is a variable x.
+        if(not has_perms(target, src_user, ["delegate"])): raise SecurityError(str(node), " - no write/append permission for existing value {0}".format(name))
         tempSet = set(network[dst_user][src_user])
         network[dst_user][src_user] = tempSet.union(set(["delegate:"+right+":"+target]))
 
@@ -336,7 +338,7 @@ def primDelDel(node: SetDel, cursor : sqlite3.Cursor):
         #TODO: implement
         pass
     else:
-        #TODO: if the principal is q and <tgt> is a variable x, then it must have delegate permission on x
+        if(not has_perms(target, src_user, ["delegate"])): raise SecurityError(str(node), " - no delegate permission for existing value {0}".format(name))
         tempSet = set(network[dst_user][src_user])
         network[dst_user][src_user] = tempSet.difference(set(["delegate:"+right+":"+target]))
 
