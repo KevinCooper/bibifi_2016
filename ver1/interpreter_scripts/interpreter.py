@@ -301,8 +301,15 @@ def primSetDel(node: SetDel, cursor : sqlite3.Cursor):
         network.add_edge(dst_user, src_user, set())
     
     if(right == "all"):
-        #TODO: implement
-        pass
+        to_add = set()
+        #Get all the rights the delegator has
+        for edge in network.edges([src_user], data=True):
+            items = [x for x in set(edge[2]) if "delegate:" in x]
+            to_add.union(items)
+        #Get all the rights the delegatee has
+        tempSet = set(network[dst_user][src_user])
+        #Combine and assign to delegatee, s + t
+        network[dst_user][src_user] = tempSet.union(to_add)
     else:
         if(not has_perms(target, src_user, ["delegate"])): raise SecurityError(str(node), " - no write/append permission for existing value {0}".format(name))
         tempSet = set(network[dst_user][src_user])
@@ -335,8 +342,15 @@ def primDelDel(node: SetDel, cursor : sqlite3.Cursor):
     if(not network.has_edge(dst_user, src_user)):
         pass #Does exist anyways!
     elif(right == "all"):
-        #TODO: implement
-        pass
+        to_remove = set()
+        #Get all the rights the delegator has
+        for edge in network.edges([src_user], data=True):
+            items = [x for x in set(edge[2]) if "delegate:" in x]
+            to_remove.union(items)
+        #Get all the rights the delegatee has
+        tempSet = set(network[dst_user][src_user])
+        #Subtract and assign to delegatee, s - t
+        network[dst_user][src_user] = tempSet.difference(to_add)
     else:
         if(not has_perms(target, src_user, ["delegate"])): raise SecurityError(str(node), " - no delegate permission for existing value {0}".format(name))
         tempSet = set(network[dst_user][src_user])

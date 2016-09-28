@@ -2,5 +2,6 @@ as principal admin password "admin" do
 create principal bob "B0BPWxxd"
 set x = "my string"
 set delegation x admin read -> bob
+set delegation x admin delegate -> bob
 return x
 ***
