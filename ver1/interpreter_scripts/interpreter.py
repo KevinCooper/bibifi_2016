@@ -261,7 +261,6 @@ def primAppendCmd(node : ReturnNode, cursor : sqlite3.Cursor):
     #Fails if x is not defined or is not a list (see below).
     cursor.execute("SELECT value FROM data WHERE name = ? LIMIT 1", (name,))
     temp_data = cursor.fetchone()
-
     #local: Fails if x is not already defined as a local or global variable.
     if(not temp_data):
         raise FailError(str(node), " {0} is not defined".format(name))
@@ -470,6 +469,7 @@ def run_program(db_con : sqlite3.Connection , program: str, in_network : nx.DiGr
     network = in_network
     backup = network.copy()
     ending = False
+    side_effects = False
     try:
         my_parser = LanguageParser()
         result = my_parser.parse(program)
@@ -481,16 +481,19 @@ def run_program(db_con : sqlite3.Connection , program: str, in_network : nx.DiGr
                 node = progNode(node, cursor)
             elif (type(node) == PrimCmdBlock):
                 node = primCmdBlockNode(node, cursor)
+                side_effects = True
             elif (type(node) == ReturnNode):
                 node = returnBlock(node, cursor)
             elif (type(node) == ExitNode):
                 node = exitBlock(node)
     except FailError as e:
         network = backup
+        side_effects = True
         status.append({"status":"FAILED"})
         print(e)
     except SecurityError as e:
         network = backup
+        side_effects = True
         status.append({"status":"DENIED"})
         print(e)
     except ParseError as e:
@@ -499,4 +502,4 @@ def run_program(db_con : sqlite3.Connection , program: str, in_network : nx.DiGr
     except ExitError as e:
         ending = True
     
-    return network, status, ending
+    return network, status, ending, side_effects

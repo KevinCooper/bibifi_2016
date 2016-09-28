@@ -18,7 +18,7 @@ def recv_until_prog_end(s: socket.socket):
     buffer = ""
     data = ""
     while True:
-        data += s.recv(1024).decode('ascii')
+        data += s.recv(1024*1024).decode('ascii')
         if not data:
             break
         buffer += data
@@ -31,19 +31,24 @@ def recv_until_prog_end(s: socket.socket):
 
 def handle_progs(s : socket.socket, db_con : sqlite3.Connection ,  network : nx.DiGraph):
     ending = False
+    prev = None
     while not ending:
         conn, addr = s.accept()
-        data = recv_until_prog_end(conn)
 
         start = time.time()
 
-        network, status, ending = run_program(db_con, data, network)
+        data = recv_until_prog_end(conn)
+        with open("log.txt", "w") as f: f.write(data)
+        #if(prev != data):
+        network, status, ending, side_effects = run_program(db_con, data, network)
+        #    prev = data
 
-        end = time.time()
+        
 
         if(status and status[-1].get('status') == "FAILED" or status[-1].get('status') == "DENIED"):
             db_con.rollback()
-        else:
+        #TODO: Careful about this optimization
+        elif(side_effects):
             cursor = db_con.cursor()
             #Delete local data from DB
             cursor.execute("DELETE FROM data WHERE scope=?", ("local",))
@@ -55,10 +60,11 @@ def handle_progs(s : socket.socket, db_con : sqlite3.Connection ,  network : nx.
                 if(node[1].get("scope", "global") == "local"):
                     network.remove_node(node[0])
 
-        status = json.dumps(status)
-        conn.sendall(status.encode('ascii'))
+        send_status = json.dumps(status)
+        conn.sendall(send_status.encode('ascii'))
         conn.close()
-
+        end = time.time()
+        print("time:" + str(end-start))
             
             
 
