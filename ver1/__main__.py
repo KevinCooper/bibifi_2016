@@ -12,16 +12,13 @@ from interpreter_scripts.errors import *
 import networkx as nx
 import time
 import glob
+import json
 
 def recv_until_prog_end(s: socket.socket):
     buffer = ""
     data = ""
     while True:
-        try:
             data += s.recv(1024).decode('ascii')
-        except Exception as e:
-            with open("/tmp/aaaa", "a") as f:
-                f.write(str(e))
         if not data:
             break
         buffer += data
@@ -36,11 +33,7 @@ def handle_progs(s : socket.socket, db_con : sqlite3.Connection ,  network : nx.
     ending = False
     while not ending:
         conn, addr = s.accept()
-        print("Conn from:" + str(addr))
         data = recv_until_prog_end(conn)
-        with open("/tmp/aaaa", "a") as f:
-            f.write(data)
-        #print(repr(data))
 
         start = time.time()
 
@@ -61,12 +54,8 @@ def handle_progs(s : socket.socket, db_con : sqlite3.Connection ,  network : nx.
                 if(node[1].get("scope", "global") == "local"):
                     network.remove_node(node)
 
-        status = [str(item) for item in status ]
-#	with open("/tmp/a", "a") as f:
-#            f.write("\n\n")
-#            f.write(str(status)+"\n"+str(end-start))
-#        print("Time:" + str(end-start))
-        conn.sendall(("\n".join(status)).encode('ascii'))
+        status = json.dumps(status)
+        conn.sendall(status.encode('ascii'))
         conn.close()
 
             
@@ -112,9 +101,6 @@ def setup_db(password: str, network : nx.DiGraph ):
 
 
 if __name__=="__main__":
-    #DEBUG
-    with open("/tmp/aaaa", "w") as f:
-        f.write("\n")
 
     original_sigint = signal.getsignal(signal.SIGINT)
     signal.signal(signal.SIGTERM, handler)

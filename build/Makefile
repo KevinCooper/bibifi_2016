@@ -1,6 +1,3 @@
-FOO = $PATH
-
-default: all
-
- all:
-    @echo $(value FOO)
+all:
+        touch temp
+        rm temp
