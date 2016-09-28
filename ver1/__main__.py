@@ -97,6 +97,7 @@ def setup_db(password: str, network : nx.DiGraph ):
     con.commit()
     network.add_node("admin")
     network.add_node("anyone")
+    network.add_node("@default", value="anyone")
     return con
 
 

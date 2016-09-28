@@ -212,7 +212,7 @@ def primCreateCmd(node : CreateCmd, cursor : sqlite3.Cursor):
     Successful status code: 
         CREATE_PRINCIPAL
     '''
-    #TODO: Perms from the default delegator
+    
     global user, network
     new_user = node.p
     s = node.s.replace('"', "")
@@ -228,6 +228,17 @@ def primCreateCmd(node : CreateCmd, cursor : sqlite3.Cursor):
 
     cursor.execute("insert into users(user, password) values (?, ?)", (new_user, s))
     network.add_node(new_user)
+
+    #Delegate 'all' from p to q
+    #all then q delegates <right> to p for all variables on which q (currently) has delegate permission.
+    default_delegator = network.node["@default"]['value']
+    delegator = network.node[delegator]
+    to_add = set()
+    for edge in network.edges([delegator], data=True):
+        items = [x for x in set(edge[2]) if "delegate:" in x]
+        to_add.union(items)
+    network[new_user][default_delegator] = to_add
+
     status.append({"status":"CREATE_PRINCIPAL"})
 
 def returnBlock(node : ReturnNode, cursor : sqlite3.Cursor):
@@ -337,7 +348,7 @@ def primDelDel(node: SetDel, cursor : sqlite3.Cursor):
     status.append({"status":"DELETE_DELEGATION"})
 
 def primSetDef(primcmd, cursor):
-    global user, status
+    global user, status, network
 
     name = primcmd.x
 
@@ -349,8 +360,7 @@ def primSetDef(primcmd, cursor):
     #Security violation if the current principal is not admin.
     if(user != "admin"): raise SecurityError(str(node), " user must be admin")
 
-
-    #TODO: Default Del
+    network.node["@default"]['value'] = name
 
     status.append({"status":"DEFAULT_DELEGATOR"})
 
