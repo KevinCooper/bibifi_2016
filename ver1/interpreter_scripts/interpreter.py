@@ -144,7 +144,6 @@ def primSetCmd(node : SetCmd, cursor : sqlite3.Cursor, scope : str):
 
     new_data = {
             "name":name, 
-            #"perms": {"admin": ["R", "W", "A", "D"] } 
             }
     #PREP DATA
     data_type, data = evalExpr(cursor, node, user, expr)
@@ -152,7 +151,6 @@ def primSetCmd(node : SetCmd, cursor : sqlite3.Cursor, scope : str):
 
     new_data['data'] = data
     new_data = json.dumps(new_data)
-    #print(new_data)
     #DATA UPDATE
     cursor.execute("SELECT value FROM data WHERE name = ? LIMIT 1", (name,))
     temp_data = cursor.fetchone()
@@ -166,7 +164,6 @@ def primSetCmd(node : SetCmd, cursor : sqlite3.Cursor, scope : str):
         cursor.execute("UPDATE data SET value=? WHERE name=?",(new_data, name))
     else:
         cursor.execute("insert into data(name, value, scope) values (?, ?, ?)", (name, new_data, scope))
-        #TODO: cleanse locals at end of run from network
         network.add_node(name, scope=scope)
         #If x is created by this command, and the current principal is not admin, then the current principal is delegated read, write, append, and delegate rights from the admin on x 
         if(user != "admin"):
@@ -200,7 +197,6 @@ def primChangeCmd(node : CreateCmd, cursor : sqlite3.Cursor):
     if(user != "admin" and user != p): #Security violation if the current principal is not admin.
         raise SecurityError("{0}".format(user), " does not have permissions to change this password.")
 
-    #TODO: Check vulnerability
     cursor.execute("UPDATE users(user, password) SET password={0} WHERE user={1}", (s, p))
     status.append({"status":"CHANGE_PASSWORD"})
 
@@ -231,13 +227,12 @@ def primCreateCmd(node : CreateCmd, cursor : sqlite3.Cursor):
 
     #Delegate 'all' from p to q
     #all then q delegates <right> to p for all variables on which q (currently) has delegate permission.
-    default_delegator = network.node["@default"]['value']
-    delegator = network.node[delegator]
+    delegator = network.node["@default"]['value']
     to_add = set()
     for edge in network.edges([delegator], data=True):
         items = [x for x in set(edge[2]) if "delegate:" in x]
         to_add.union(items)
-    network[new_user][default_delegator] = to_add
+    network.add_edge(new_user, delegator, to_add)
 
     status.append({"status":"CREATE_PRINCIPAL"})
 

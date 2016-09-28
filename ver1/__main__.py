@@ -51,6 +51,7 @@ def handle_progs(s : socket.socket, db_con : sqlite3.Connection ,  network : nx.
 
             #Delete local from permissions network
             for node in network.nodes(data=True):
+                #node[0] = nodeName, node[1]= dict of node data
                 if(node[1].get("scope", "global") == "local"):
                     network.remove_node(node)
 
