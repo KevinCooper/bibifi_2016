@@ -87,6 +87,9 @@ def get_inputs():
     else:
         sys.exit(255)
 
+    #TODO: Better hex/octal check
+    if(str(port).startswith("0")) : sys.exit(255)
+
     if(len(password) > 4096 or len(port) > 4096):
         sys.exit(255)
     if(not port.isdigit() or int(port) < 1024 or int(port) > 65535 ):
