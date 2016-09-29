@@ -481,6 +481,7 @@ def run_program(db_con : sqlite3.Connection , program: str, in_network : nx.DiGr
     ending = False
     side_effects = False
     try:
+        if(len(program) > 1000000) : raise FailError(str(len(program)), " program too big")
         my_parser = LanguageParser()
         result = my_parser.parse(program)
 
