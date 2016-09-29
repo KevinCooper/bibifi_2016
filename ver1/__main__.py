@@ -39,6 +39,7 @@ def handle_progs(s : socket.socket, db_con : sqlite3.Connection ,  network : nx.
 
         data = recv_until_prog_end(conn)
         with open("log.txt", "w") as f: f.write(data)
+        print("RECV:\n" + data)
         #if(prev != data):
         network, status, ending, side_effects = run_program(db_con, data, network)
         #    prev = data
@@ -61,7 +62,8 @@ def handle_progs(s : socket.socket, db_con : sqlite3.Connection ,  network : nx.
                     network.remove_node(node[0])
 
         send_status = json.dumps(status)
-        conn.sendall(send_status.encode('ascii'))
+        print("SEND:\n" + send_status)
+        conn.send(send_status.encode('utf-8'))
         conn.close()
         end = time.time()
         print("time:" + str(end-start))
