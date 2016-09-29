@@ -115,11 +115,11 @@ def evalExpr(cursor : sqlite3.Cursor, node, user : str , expr):
         parent = expr.parent.val
         child = expr.child.val
         data_type, data = get_record_data(node, user, cursor, parent, child)
-    elif(isinstance(expr, FieldValue)): # Field
+    elif(isinstance(expr, FieldValue)): # Field { x1 = y1, ..., xn = yn}
         temp = expr
         data = {}
+        field_names = []
         while temp:
-            #TODO: Fails if x1, …, xn are not unique.
             if(isinstance(temp.y, StringNode)):
                 data[temp.x] = temp.y.val
             elif(isinstance(temp.y, IDNode)):
@@ -134,7 +134,13 @@ def evalExpr(cursor : sqlite3.Cursor, node, user : str , expr):
                 if(data_type != "string"): raise FailError(str(node), " - unsupported type for a fieldval")
             else:
                 raise FailError(str(node), " - unsupported type for a fieldval")
+            field_names.append(temp.x)
             temp = temp.nextNode
+        
+        #If len of list is greater than a set of all the names, then there is a duplicate
+        if len(field_names) > len(set(field_names)):
+            raise FailError(str(node), " - the field names are not unique")
+
         data_type = "record"
 
     return data_type, data
@@ -493,12 +499,12 @@ def run_program(db_con : sqlite3.Connection , program: str, in_network : nx.DiGr
     except FailError as e:
         network = backup
         side_effects = True
-        status.append({"status":"FAILED"})
+        status = [{"status":"FAILED"}]
         print(e)
     except SecurityError as e:
         network = backup
         side_effects = True
-        status.append({"status":"DENIED"})
+        status = [{"status":"DENIED"}]
         print(e)
     except ParseError as e:
         status = [{"status":"FAILED"}]
