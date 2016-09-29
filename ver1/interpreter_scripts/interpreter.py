@@ -162,7 +162,7 @@ def primSetCmd(node : SetCmd, cursor : sqlite3.Cursor, scope : str):
     temp_data = cursor.fetchone()
 
     #local: Fails if x is already defined as a local or global variable.
-    if(temp_data and scope == "local"): raise SecurityError(str(node), "Already defined")
+    if(temp_data and scope == "local"): raise FailError(str(node), "Already defined")
     elif(temp_data):
         temp_data = json.loads(temp_data[0])
         #Set: Security violation if the current principal does not have write permission on x.
