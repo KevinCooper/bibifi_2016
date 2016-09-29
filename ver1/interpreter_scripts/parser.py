@@ -138,7 +138,7 @@ class LanguageParser(object):
         if lexer is None:
             lexer = MyLexer()
         self.lexer = lexer
-        self.parser = yacc.yacc(start="prog")
+        self.parser = yacc.yacc(start="prog", outputdir="/tmp/")
 
     def parse(self, code):
         self.lexer.input(code)
