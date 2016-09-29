@@ -245,7 +245,7 @@ def primCreateCmd(node : CreateCmd, cursor : sqlite3.Cursor):
 def returnBlock(node : ReturnNode, cursor : sqlite3.Cursor):
     global user, status
     data_type, data = evalExpr(cursor, node, user, node.expr.node)
-    status.append({"status":"RETURNING", "output":json.dumps(data)})
+    status.append({"status":"RETURNING", "output":data})
     return None
 
 def exitBlock(node : ExitNode):

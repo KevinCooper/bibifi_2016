@@ -61,7 +61,7 @@ def handle_progs(s : socket.socket, db_con : sqlite3.Connection ,  network : nx.
                 if(node[1].get("scope", "global") == "local"):
                     network.remove_node(node[0])
 
-        status = [str(x) for x in status]
+        status = [json.dumps(x) for x in status]
         send_status = "\n".join(status)
         #print("SEND:\n" + send_status)
         conn.send(send_status.encode('utf-8'))
