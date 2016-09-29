@@ -1,0 +1,6 @@
+as principal admin password "admin" do
+set x = { f="alice", g="bob" }
+set y = "another string"
+set z = { f=x.f, g=y, h=x.g, i="constant" }
+return z
+***

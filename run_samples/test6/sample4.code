@@ -1,0 +1,5 @@
+as principal admin password "admin" do
+set x = { field1="joe" }
+local x = "hello"
+return x
+***

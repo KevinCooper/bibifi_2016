@@ -1,0 +1,6 @@
+as principal admin password "admin" do
+local x = { field1="joe" }
+set y = []
+append to y with x
+return y
+***

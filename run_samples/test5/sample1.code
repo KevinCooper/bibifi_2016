@@ -1,0 +1,5 @@
+as principal admin password "admin" do
+set y = { jim="beam" }
+append to y with "hi" // should fail since y is not a table
+return y
+***

@@ -1,0 +1,5 @@
+as principal admin password "admin" do
+change password admin "0123__abcXY"
+change password alice "bob"
+return ""
+***

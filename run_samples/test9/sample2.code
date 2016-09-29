@@ -1,0 +1,4 @@
+as principal alice password "alice" do
+append to y with { x="0", y="100" }
+return y
+***

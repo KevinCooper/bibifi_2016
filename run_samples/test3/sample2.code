@@ -1,0 +1,4 @@
+as principal admin password "admin" do
+append to records with var
+return records
+***

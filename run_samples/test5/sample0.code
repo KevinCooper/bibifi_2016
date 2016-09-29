@@ -1,0 +1,11 @@
+as principal admin password "admin" do
+set records = []
+set y = { jim="beam" }
+append to records with { name = "mike", date = "1-1-90" } 
+append to records with "dave"
+append to records with records
+append to records with []
+append to records with y.jim
+set y = []
+return records
+***

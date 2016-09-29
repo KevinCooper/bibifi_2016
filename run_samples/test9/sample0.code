@@ -1,0 +1,10 @@
+as principal admin password "admin" do
+create principal bob "bob"
+create principal alice "alice"
+set x = "x"
+set y = "y"
+set delegation x admin read -> alice
+set delegation x admin write -> alice
+set delegation x alice read -> bob
+return x
+***

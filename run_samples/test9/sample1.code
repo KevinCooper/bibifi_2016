@@ -1,0 +1,12 @@
+as principal admin password "admin" do
+set y = []
+append to y with { x="10", y="10" }
+set delegation x admin delegate -> alice
+set delegation y admin delegate -> alice
+set delegation y admin read -> alice
+set delegation y admin append -> alice
+delete delegation x admin read -> bob // should have no effect
+default delegator = alice
+create principal charlie "charlie" // delegated alice permissions on x and y
+return y
+***

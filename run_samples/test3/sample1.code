@@ -1,0 +1,7 @@
+as principal admin password "admin" do
+foreach y in records replacewith "boring"
+set var = { well="three" }
+set newvar = ""
+local var = ""
+return "hi"
+***

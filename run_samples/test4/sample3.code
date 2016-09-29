@@ -1,0 +1,5 @@
+as principal admin password "admin" do
+set x = { f="hello", g="there", h="my", f="friend" }
+return x
+***
+

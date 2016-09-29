@@ -1,0 +1,3 @@
+as principal alice password "bob" do
+return ""
+***

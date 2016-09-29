@@ -1,0 +1,5 @@
+as principal charlie password "charlie" do
+append to y with "charlies"
+append to y with x
+return y
+***

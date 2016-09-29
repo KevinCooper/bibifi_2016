@@ -1,0 +1,4 @@
+as principal alice password "alice" do
+change password bob "alice"
+return ""
+***
