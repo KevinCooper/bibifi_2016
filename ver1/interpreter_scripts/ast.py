@@ -27,7 +27,7 @@ class IDNode(Node):
     def __init__(self, val : str):
         super()
         self.val = val
-        if(len(self.val) > 255) : raise FailError(val, " - id name too long")
+        if(len(self.val) > 255) : raise FailError(val[0:100], " - id name too long")
 
     def __str__(self):
         return ""+self.val
@@ -37,7 +37,7 @@ class StringNode(Node):
         super()
         #TODO: Should quotes be removed here
         self.val = val.replace('"', "")
-        if(len(self.val) > 65535) : raise FailError(val, " - stringval too long")
+        if(len(self.val) > 65535) : raise FailError(val[0:100], " - stringval too long")
 
     def __str__(self):
         return ""+self.val

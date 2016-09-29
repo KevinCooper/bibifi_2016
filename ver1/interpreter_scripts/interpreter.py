@@ -14,6 +14,7 @@ import collections
 user = ""
 status = []
 network = None
+my_parser = None
 
 def progNode(node : ProgNode, cursor : sqlite3.Cursor) :
     global user
@@ -474,7 +475,7 @@ def primCmdBlockNode(node : PrimCmdBlock, cursor : sqlite3.Cursor) :
 
 
 def run_program(db_con : sqlite3.Connection , program: str, in_network : nx.DiGraph ):
-    global network, status
+    global network, status, my_parser
     status = []
     network = in_network
     backup = network.copy()
@@ -482,7 +483,10 @@ def run_program(db_con : sqlite3.Connection , program: str, in_network : nx.DiGr
     side_effects = False
     try:
         if(len(program) > 1000000) : raise FailError(str(len(program)), " program too big")
-        my_parser = LanguageParser()
+
+        #No need to recreate parser and associated parsing tables when we rerun the programs
+        if(my_parser is None):
+            my_parser = LanguageParser()
         result = my_parser.parse(program)
 
         cursor = db_con.cursor()
