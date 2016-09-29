@@ -177,7 +177,10 @@ def primSetCmd(node : SetCmd, cursor : sqlite3.Cursor, scope : str):
         network["admin"][name] = set(["read", "write", "append", "delegate"])
     
 
-    status.append({"status":"SET"})
+    if(scope == "global"):
+        status.append({"status":"SET"})
+    elif(scope == "local"):
+        status.append({"status":"LOCAL"})
 
 
     
