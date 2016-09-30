@@ -180,7 +180,10 @@ def primSetCmd(node : SetCmd, cursor : sqlite3.Cursor, scope : str):
         network.add_node(name, scope=scope)
         #If x is created by this command, and the current principal is not admin, then the current principal is delegated read, write, append, and delegate rights from the admin on x 
         if(user != "admin"):
+            network.add_edge(user, "admin", set())
             network[user]["admin"] = set(["delegate:read:"+name, "delegate:write:"+name, "delegate:append:"+name, "delegate:delegate:"+name])
+        
+        network.add_edge("admin", name, set())
         network["admin"][name] = set(["read", "write", "append", "delegate"])
     
 
@@ -246,9 +249,12 @@ def primCreateCmd(node : CreateCmd, cursor : sqlite3.Cursor):
     delegator = network.node["@default"]['value']
     to_add = set()
     for edge in network.edges([delegator], data=True):
-        items = [x for x in set(edge[2]) if "delegate:" in x]
-        to_add.union(items)
-    network.add_edge(new_user, delegator, to_add)
+        items = set([x for x in set(edge[2]) if "delegate:" in x])
+        to_add = to_add.union(items)
+    
+    network.add_edge(new_user, delegator, set())
+    network[new_user][delegator] = to_add
+
 
     status.append({"status":"CREATE_PRINCIPAL"})
 
@@ -280,7 +286,7 @@ def primAppendCmd(node : ReturnNode, cursor : sqlite3.Cursor):
         #Fails if x is not a list.
         if(temp_data['type'] != 'list'): raise FailError(str(node), " {0} is not a list".format(name))
         #Security violation if the current principal does not have either write or append permission on x.
-        if(not has_perms(name, user, ["write", "append"])): raise SecurityError(str(node), " - no write/append permission for existing value {0}".format(name))
+        if(not (has_perms(name, user, ["append"]) or has_perms(name, user, ["append"]))): raise SecurityError(str(node), " - no write/append permission for existing value {0}".format(name))
         if(data_type != "list"):
             temp_data['data'].extend([data])
         else:
@@ -366,7 +372,7 @@ def primDelDel(node: DelDel, cursor : sqlite3.Cursor):
         #Subtract and assign to delegatee, s - t
         network[dst_user][src_user] = tempSet.difference(to_add)
     else:
-        if(not has_perms(target, src_user, ["delegate"])): raise SecurityError(str(node), " - no delegate permission for existing value {0}".format(name))
+        if(user != src_user and not has_perms(target, src_user, ["delegate"])): raise SecurityError(str(node), " - no delegate permission for existing value {0}".format(name))
         tempSet = set(network[dst_user][src_user])
         network[dst_user][src_user] = tempSet.difference(set(["delegate:"+right+":"+target]))
 
@@ -374,7 +380,6 @@ def primDelDel(node: DelDel, cursor : sqlite3.Cursor):
 
 def primSetDef(node : DefaultCmd, cursor):
     global user, status, network
-
     name = node.x
 
     #Fails if p does not exist.
@@ -468,7 +473,7 @@ def primCmdBlockNode(node : PrimCmdBlock, cursor : sqlite3.Cursor) :
     elif(type(primcmd) == SetDel):
         primSetDel(primcmd, cursor)
     elif(type(primcmd) == DelDel):
-        primDetDel(primcmd, cursor)
+        primDelDel(primcmd, cursor)
     elif(type(primcmd) == DefaultCmd):
         primSetDef(primcmd, cursor)
     elif(type(primcmd) == ForEachCmd):

@@ -183,7 +183,7 @@ class DefaultCmd(PrimCmd):
         self.x = x
 
     def __str__(self):
-        return "\t<DefaultCmd>: {0} {1}".format(self.x)
+        return "\t<DefaultCmd>: {0}".format(self.x)
 
 
 class ForEachCmd(PrimCmd):
