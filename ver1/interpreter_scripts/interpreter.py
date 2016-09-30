@@ -176,7 +176,7 @@ def primSetCmd(node : SetCmd, cursor : sqlite3.Cursor, scope : str):
     global user, status, network
     name = node.x
     expr = node.expr.node
-
+    
     new_data = {
             "name":name, 
             }
