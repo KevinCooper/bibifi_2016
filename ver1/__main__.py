@@ -18,7 +18,7 @@ def recv_until_prog_end(s: socket.socket):
     buffer = ""
     data = ""
     while True:
-        data += s.recv(1024*1024).decode('ascii')
+        data = s.recv(1024*1024).decode('ascii')
         if not data:
             break
         buffer += data
