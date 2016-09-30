@@ -15,6 +15,7 @@ user = ""
 status = []
 network = None
 my_parser = None
+sec_cache = None
 
 def progNode(node : ProgNode, cursor : sqlite3.Cursor) :
     global user
@@ -36,7 +37,7 @@ def progNode(node : ProgNode, cursor : sqlite3.Cursor) :
 
 def has_perms(name: str, user: str, reqs : list) -> bool:
     #x admin ['read']
-    global network
+    global network, sec_cache
     '''
         We need to run this for each requirements, because a user may be able to read X from delegations
         down one path, but has to user another path.  Since we are making a copy of the network, maybe
@@ -46,6 +47,13 @@ def has_perms(name: str, user: str, reqs : list) -> bool:
 
     #ADMIN IS GOD
     if(user == "admin"): return True
+
+    #Cache results if things don't change
+    temp = user + ":" + name
+    result = sec_cache.get(temp, None)
+    if(result and set(result).issuperset(set(reqs))): 
+        return True
+
 
     for req in reqs:
         G = network.copy()
@@ -63,7 +71,14 @@ def has_perms(name: str, user: str, reqs : list) -> bool:
                 continue
         
         if(not nx.has_path(G, user, name)):
-            return False    
+            return False   
+    
+    #Update Cache
+    if(result):
+        sec_cache[temp] = set(reqs).union(result)
+    else:
+        sec_cache[temp] = set(reqs)
+        
     return True
     
 
@@ -341,11 +356,11 @@ def primSetDel(node: SetDel, cursor : sqlite3.Cursor):
 def primDelDel(node: DelDel, cursor : sqlite3.Cursor):
     #delete delegation <tgt> q <right> -> p 
     #                  tgt  src right  -> dst
-    global user, status
+    global user, status, sec_cache
     target = node.tgt
     src_user = node.src_id
     right = node.right
-    dst_user = node.dst_id
+    dst_user = node.dst_id 
 
     #Fails if either p or q does not exist.
     cursor.execute("SELECT * FROM users WHERE user = ? LIMIT 1", (src_user,))
@@ -375,6 +390,11 @@ def primDelDel(node: DelDel, cursor : sqlite3.Cursor):
         if(user != src_user and not has_perms(target, src_user, ["delegate"])): raise SecurityError(str(node), " - no delegate permission for existing value {0}".format(name))
         tempSet = set(network[dst_user][src_user])
         network[dst_user][src_user] = tempSet.difference(set(["delegate:"+right+":"+target]))
+
+    #Remove entry from cache
+    temp = sec_cache.get(src_user+":"+target, None)
+    if(temp):
+        sec_cache[temp] = None
 
     status.append({"status":"DELETE_DELEGATION"})
 
@@ -482,7 +502,8 @@ def primCmdBlockNode(node : PrimCmdBlock, cursor : sqlite3.Cursor) :
 
 
 def run_program(db_con : sqlite3.Connection , program: str, in_network : nx.DiGraph ):
-    global network, status, my_parser
+    global network, status, my_parser, sec_cache
+    sec_cache = {}
     status = []
     network = in_network
     backup = network.copy()
