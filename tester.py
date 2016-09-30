@@ -13,6 +13,9 @@ if __name__=="__main__":
             s.sendall(f.read().encode('ascii'))
             print("GOT:")
             x = s.recv(1024*1024*1024).decode('ascii')
-            print(x[:100])
-            print(x[-100:])
+            if(len(x) > 200):
+                print(x[:100])
+                print(x[-100:])
+            else:
+                print(x)
             print("")

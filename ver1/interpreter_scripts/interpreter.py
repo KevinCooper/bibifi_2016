@@ -50,16 +50,16 @@ def has_perms(name: str, user: str, reqs : list) -> bool:
     for req in reqs:
         G = network.copy()
         del_req = set(["delegate:"+req+":"+name])
-        for edge in G.edges(data=True):
+        for u, v, d in G.edges(data=True):
             #('admin', 'x', {'write', 'read', 'append', 'delegate'})
             #If edge to item and not access
-            if(edge[1] == name and not set(edge[2]).issuperset(set([req]))):
-                G.remove_edge(*edge[:2])
+            if(v == name and not set(d).issuperset(set([req]))):
+                G.remove_edge(u, v)
                 continue
             #Edge isn't to our desired item, need delegate access
             #Can't have delegated access from user -> item
-            elif(edge[1] != name and not set(edge[2]).issuperset(del_req)):
-                G.remove_edge(*edge[:2])
+            elif(v != name and not set(d).issuperset(del_req)):
+                G.remove_edge(u, v)
                 continue
         
         if(not nx.has_path(G, user, name)):
@@ -213,7 +213,7 @@ def primChangeCmd(node : CreateCmd, cursor : sqlite3.Cursor):
     if(user != "admin" and user != p): #Security violation if the current principal is not admin.
         raise SecurityError("{0}".format(user), " does not have permissions to change this password.")
 
-    cursor.execute("UPDATE users(user, password) SET password={0} WHERE user={1}", (s, p))
+    cursor.execute("UPDATE users SET password=? WHERE user=?", (s, p))
     status.append({"status":"CHANGE_PASSWORD"})
 
 def primCreateCmd(node : CreateCmd, cursor : sqlite3.Cursor):
@@ -323,7 +323,9 @@ def primSetDel(node: SetDel, cursor : sqlite3.Cursor):
         #Combine and assign to delegatee, s + t
         network[dst_user][src_user] = tempSet.union(to_add)
     else:
-        if(not has_perms(target, src_user, ["delegate"])): raise SecurityError(str(node), " - no write/append permission for existing value {0}".format(name))
+        #If the current user is admin, we don't care if SRC doesn't have delegate permissions
+        #if the principal is q and <tgt> is the variable x, then q must have delegate permission on x.
+        if(user == src_user and not has_perms(target, src_user, ["delegate"])): raise SecurityError(str(node), " - no write/append permission for existing value {0}".format(src_user))
         tempSet = set(network[dst_user][src_user])
         network[dst_user][src_user] = tempSet.union(set(["delegate:"+right+":"+target]))
 
