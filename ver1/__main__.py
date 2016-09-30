@@ -34,13 +34,13 @@ def handle_progs(s : socket.socket, db_con : sqlite3.Connection ,  network : nx.
     prev = None
     while not ending:
         conn, addr = s.accept()
-        conn.settimeout(30)
+        #conn.settimeout(30)
 
-        try:
-            data = recv_until_prog_end(conn)
-        except socket.timeout as e:
-            conn.send(str({"status":"TIMEOUT"}).encode("ascii"))
-            continue
+        #try:
+        data = recv_until_prog_end(conn)
+        #except socket.timeout as e:
+        #    conn.send(str({"status":"TIMEOUT"}).encode("ascii"))
+        #    continue
 
         #import cProfile, pstats, sys
         #pr = cProfile.Profile()
