@@ -36,6 +36,7 @@ def handle_progs(s : socket.socket, db_con : DB ,  network : nx.DiGraph):
     prev = None
     while not ending:
         conn, addr = s.accept()
+        start = time.time()
         #conn.settimeout(30)
 
         #try:
@@ -44,13 +45,9 @@ def handle_progs(s : socket.socket, db_con : DB ,  network : nx.DiGraph):
         #    conn.send(str({"status":"TIMEOUT"}).encode("ascii"))
         #    continue
 
-        #import cProfile, pstats, sys
-        #pr = cProfile.Profile()
-        #pr.enable()
+
         network, status, ending, side_effects = run_program(db_con, data, network)
-        #pr.disable()
-        #ps = pstats.Stats(pr, stream=sys.stdout)
-        #ps.print_stats()
+        
 
         if(status and status[-1].get('status') == "FAILED" or status[-1].get('status') == "DENIED"):
             db_con.revert()
@@ -71,6 +68,9 @@ def handle_progs(s : socket.socket, db_con : DB ,  network : nx.DiGraph):
         send_status = "\n".join(status)
         conn.send(send_status.encode('utf-8'))
         conn.close()
+        end = time.time()
+        print(str(end-start))
+
             
             
 
