@@ -3,7 +3,6 @@ import sys
 import re
 import sqlite3
 from .parser import LanguageParser
-from .myglobal import myUserDB, myDataDB 
 from .errors import *
 from .ast import *
 import pickle
@@ -13,25 +12,20 @@ import time
 import collections
 import copy
 
-try:
-    from .myglobal import myUserDB, myDataDB 
-except Exception as e:
-    from interpreter_scripts.myglobal import myUserDB, myDataDB 
-
 user = ""
 status = []
 network = None
 my_parser = None
 sec_cache = None
 
-def progNode(node : ProgNode, cursor : sqlite3.Cursor) :
-    global user, myUserDB, myDataDB
+def progNode(node : ProgNode, cursor ) :
+    global user
     user = node.user
     password = node.password.replace('"', '')
 
     #cursor.execute("SELECT * FROM users WHERE user = ? LIMIT 1", (user,))
     
-    temp = myUserDB.get(user, None)
+    temp = cursor.getUser(user)
     if(not temp):
         #Fails if principal p does not exist.
         raise FailError("{0}".format(user), " does not exist")
@@ -89,12 +83,11 @@ def has_perms(name: str, user: str, reqs : list) -> bool:
     return True
     
 
-def get_id_data(node, user : str , cursor : sqlite3.Cursor , name : str):
+def get_id_data(node, user : str , cursor  , name : str):
     '''
         return: data_format of item matching name, given that user has correct permissions
     '''
-    
-    data = myDataDB.get(name, None)
+    data = cursor.getData(name)
     #Fails if x does not exist
     if(not data) : raise FailError(str(node), " - setting with illegal reference to {0}".format(name))
     
@@ -103,12 +96,11 @@ def get_id_data(node, user : str , cursor : sqlite3.Cursor , name : str):
     #Returns the current value of variable x.
     return data.get("type", None), data.get("data", None)
 
-def get_record_data(node, user : str, cursor : sqlite3.Cursor, parent : str, child : str):
+def get_record_data(node, user : str, cursor , parent : str, child : str):
     '''
         return: data of item matching record (x.y), given that user has correct permissions
     '''
-    
-    data = myDataDB.get(parent, None)
+    data = cursor.getData(parent)
     #Fails if x is not a record or does not have a y field.
     if(not data) : raise FailError(str(node), " - setting with illegal reference to {0}".format(parent))
 
@@ -123,7 +115,7 @@ def get_record_data(node, user : str, cursor : sqlite3.Cursor, parent : str, chi
     #If x is a record with field y, returns the value stored in that field.
     return "string", data
 
-def evalExpr(cursor : sqlite3.Cursor, node, user : str , expr):
+def evalExpr(cursor , node, user : str , expr):
     data_type = None
     data = None
     if(isinstance(expr, StringNode)): #We are assigning simple stringval
@@ -168,7 +160,7 @@ def evalExpr(cursor : sqlite3.Cursor, node, user : str , expr):
 
     return data_type, data
 
-def primSetCmd(node : SetCmd, cursor : sqlite3.Cursor, scope : str):
+def primSetCmd(node : SetCmd, cursor , scope : str):
     #Local:
     #    Fails if x is already defined as a local or global variable.
     #Set:
@@ -176,7 +168,7 @@ def primSetCmd(node : SetCmd, cursor : sqlite3.Cursor, scope : str):
     global user, status, network
     name = node.x
     expr = node.expr.node
-    
+
     new_data = {
             "name":name, 
             }
@@ -184,12 +176,12 @@ def primSetCmd(node : SetCmd, cursor : sqlite3.Cursor, scope : str):
     data_type, data = evalExpr(cursor, node, user, expr)
     new_data['type'] = data_type
 
-    new_data['data'] = copy.deepcopy(data)
+    new_data['data'] = data
     new_data['scope'] = scope
     #new_data = json.dumps(new_data)
     #DATA UPDATE
     #cursor.execute("SELECT value FROM data WHERE name = ? LIMIT 1", (name,))
-    temp_data = myDataDB.get(name, None)
+    temp_data = cursor.getData(name)
 
     #local: Fails if x is already defined as a local or global variable.
     if(temp_data and scope == "local"): raise FailError(str(node), "Already defined")
@@ -197,9 +189,9 @@ def primSetCmd(node : SetCmd, cursor : sqlite3.Cursor, scope : str):
         #Set: Security violation if the current principal does not have write permission on x.
         if(not has_perms(name, user, ["write"])): raise SecurityError(str(node), " - no Write permission for existing value {0}".format(name))
         #Could optomize and only change actual data
-        myDataDB[name] = new_data
+        cursor.setData(name, new_data)
     else:
-        myDataDB[name] = new_data
+        cursor.setData(name, new_data)
         network.add_node(name, scope=scope)
         #If x is created by this command, and the current principal is not admin, then the current principal is delegated read, write, append, and delegate rights from the admin on x 
         if(user != "admin"):
@@ -218,7 +210,7 @@ def primSetCmd(node : SetCmd, cursor : sqlite3.Cursor, scope : str):
 
     
 
-def primChangeCmd(node : CreateCmd, cursor : sqlite3.Cursor):
+def primChangeCmd(node : CreateCmd, cursor ):
     ''' create principal p s  #s surrounded by double quotes
     Failure conditions:
         Fails if p already exists as a principal.
@@ -230,7 +222,7 @@ def primChangeCmd(node : CreateCmd, cursor : sqlite3.Cursor):
     p = node.p
     s = node.s.replace('"', "")
 
-    temp = myUserDB.get(p, None)
+    temp = cursor.getUser(p)
 
     if(not temp): #Fails if p already exists as a principal.
         raise FailError("{0}".format(user), " does not exist")
@@ -238,10 +230,10 @@ def primChangeCmd(node : CreateCmd, cursor : sqlite3.Cursor):
     if(user != "admin" and user != p): #Security violation if the current principal is not admin.
         raise SecurityError("{0}".format(user), " does not have permissions to change this password.")
 
-    myUserDB[p] = s
+    cursor.setUser(p, s)
     status.append({"status":"CHANGE_PASSWORD"})
 
-def primCreateCmd(node : CreateCmd, cursor : sqlite3.Cursor):
+def primCreateCmd(node : CreateCmd, cursor ):
     ''' create principal p s  #s surrounded by double quotes
     Failure conditions:
         Fails if p already exists as a principal.
@@ -257,12 +249,12 @@ def primCreateCmd(node : CreateCmd, cursor : sqlite3.Cursor):
     #Security violation if the current principal is not admin.
     if(user != "admin"): raise SecurityError("{0}".format(user), " is not the administrator")
     
-    temp = myUserDB.get(new_user, None)
+    temp = cursor.getUser(new_user)
 
     #Fails if p already exists as a principal.
     if(temp): raise FailError("{0}".format(user), " already exists")
 
-    myUserDB[new_user] = s
+    cursor.setUser(new_user, s)
     network.add_node(new_user)
 
     #Delegate 'all' from p to q
@@ -279,7 +271,7 @@ def primCreateCmd(node : CreateCmd, cursor : sqlite3.Cursor):
 
     status.append({"status":"CREATE_PRINCIPAL"})
 
-def returnBlock(node : ReturnNode, cursor : sqlite3.Cursor):
+def returnBlock(node : ReturnNode, cursor ):
     global user, status
     data_type, data = evalExpr(cursor, node, user, node.expr.node)
     status.append({"status":"RETURNING", "output":data})
@@ -291,14 +283,14 @@ def exitBlock(node : ExitNode):
     raise ExitError()
 
 
-def primAppendCmd(node : ReturnNode, cursor : sqlite3.Cursor):
+def primAppendCmd(node : ReturnNode, cursor ):
     global user
     name = node.x
     expr = node.expr.node
     
     data_type, data = evalExpr(cursor, node, user, expr)
     #Fails if x is not defined or is not a list (see below).
-    temp_data = myDataDB.get(name, None)
+    temp_data = cursor.getData(name)
     #local: Fails if x is not already defined as a local or global variable.
     if(not temp_data):
         raise FailError(str(node), " {0} is not defined".format(name))
@@ -311,10 +303,10 @@ def primAppendCmd(node : ReturnNode, cursor : sqlite3.Cursor):
             temp_data['data'].extend([data])
         else:
             temp_data['data'].extend(data)
-        myDataDB[name] = temp_data
+        cursor.setData(name, temp_data)
     status.append({"status":"APPEND"})
 
-def primSetDel(node: SetDel, cursor : sqlite3.Cursor):
+def primSetDel(node: SetDel, cursor ):
     #set delegation <tgt> q <right> -> p
     #                tgt  src right  -> dst
     global user, status, network
@@ -324,9 +316,9 @@ def primSetDel(node: SetDel, cursor : sqlite3.Cursor):
     dst_user = node.dst_id
     
     #Fails if either p or q does not exist.
-    temp_data = myUserDB.get(src_user, None)
+    temp_data = cursor.getUser(src_user)
     if(not temp_data): raise FailError(str(node), " giving user does not exist")
-    temp_data = myUserDB.get(dst_user, None)
+    temp_data = cursor.getUser(dst_user)
     if(not temp_data): raise FailError(str(node), " receiving user does not exist")
     #set delegation x p <right> -> q requires that, if x is a "normal" variable, the current principal be either admin or p.
     #If the latter, p must have delegate permission on x.
@@ -355,7 +347,7 @@ def primSetDel(node: SetDel, cursor : sqlite3.Cursor):
     status.append({"status":"SET_DELEGATION"})
     
 
-def primDelDel(node: DelDel, cursor : sqlite3.Cursor):
+def primDelDel(node: DelDel, cursor ):
     #delete delegation <tgt> q <right> -> p 
     #                  tgt  src right  -> dst
     global user, status, sec_cache
@@ -365,9 +357,9 @@ def primDelDel(node: DelDel, cursor : sqlite3.Cursor):
     dst_user = node.dst_id 
 
     #Fails if either p or q does not exist.
-    temp_data = myUserDB.get(src_user, None)
+    temp_data = cursor.getUser(src_user)
     if(not temp_data): raise FailError(str(node), " giving user does not exist")
-    temp_data = myUserDB.get(dst_user, None)
+    temp_data = cursor.getUser(dst_user)
     if(not temp_data): raise FailError(str(node), " receiving user does not exist")
     #set delegation x p <right> -> q requires that, if x is a "normal" variable, the current principal be either admin or p.
     #If the latter, p must have delegate permission on x.
@@ -398,12 +390,12 @@ def primDelDel(node: DelDel, cursor : sqlite3.Cursor):
 
     status.append({"status":"DELETE_DELEGATION"})
 
-def primSetDef(node : DefaultCmd, cursor):
+def primSetDef(node : DefaultCmd, cursor ):
     global user, status, network
     name = node.x
 
     #Fails if p does not exist.
-    temp_data = myUserDB.get(name, None)
+    temp_data = cursor.getUser(name)
     if(not temp_data): raise FailError(str(node), " user does not exist")
 
     #Security violation if the current principal is not admin.
@@ -413,7 +405,7 @@ def primSetDef(node : DefaultCmd, cursor):
 
     status.append({"status":"DEFAULT_DELEGATOR"})
 
-def primForEach(node : ForEachCmd, cursor):
+def primForEach(node : ForEachCmd, cursor ):
     #foreach y in x replacewith <expr>
     global user, status, network
     item = node.y
@@ -421,14 +413,14 @@ def primForEach(node : ForEachCmd, cursor):
     expr = node.expr.node
     
     #Fails if x is not defined
-    temp_data = myDataDB.get(name, None)
+    temp_data = cursor.getData(name)
     if(not temp_data): raise FailError(str(node), " {0} is not defined".format(name))
 
     #Fails if x is not a list.
     if(temp_data['type'] != 'list'): raise FailError(str(node), " {0} is not a list".format(name))
 
     #Fails if y is already defined as a local or global variable.
-    temp = myDataDB.get(item, None)
+    temp = cursor.getData(item)
     if(temp): raise FailError(str(node), " {0} is already defined".format(item))
 
     #Security violation if the current principal does not have read/write permission on x.
@@ -448,7 +440,7 @@ def primForEach(node : ForEachCmd, cursor):
     for index, element in enumerate(list(data)):
         #Instantiate y
         #TODO: what other types are there? List?
-        myDataDB[item] =  { 'name' : item, 'data' : element, 'type' : 'string', 'scope': 'local'}
+        cursor.setData(item,  { 'name' : item, 'data' : element, 'type' : 'string', 'scope': 'local'})
         network.add_node(item, scope="local")
 
         network.add_edge(user, "admin", set())
@@ -464,16 +456,16 @@ def primForEach(node : ForEachCmd, cursor):
         #remove Node
         network.remove_node(item)
         #remove Instantiation
-        myDataDB.pop(item)
+        cursor.popData(item)
 
     #DATA UPDATE
     temp_data['data'] = data
-    myDataDB[name] = temp_data
+    cursor.setData(name, temp_data)
 
     status.append({"status":"FOREACH"})
 
 
-def primCmdBlockNode(node : PrimCmdBlock, cursor : sqlite3.Cursor) :
+def primCmdBlockNode(node : PrimCmdBlock, cursor ) :
     primcmd = node.primcmd
     cmd = node.cmd
 
@@ -514,7 +506,7 @@ def run_program(db_con : sqlite3.Connection , program: str, in_network : nx.DiGr
             my_parser = LanguageParser()
         result = my_parser.parse(program)
 
-        cursor = None#db_con.cursor()
+        cursor = db_con
         node = result
         while node is not None:
             if (type(node) == ProgNode):
