@@ -106,6 +106,7 @@ def setup_db(password: str, network : nx.DiGraph ):
     test = DB()
     test.setUser("admin", password)
     test.setUser("anyone", "@")
+    test.commit()
     #Anyone is given a password that can not ever be input.  Admin can change this later if they choose to.
     network.add_node("admin")
     network.add_node("anyone")
