@@ -13,6 +13,8 @@ import networkx as nx
 import time
 import glob
 import json
+from interpreter_scripts.myglobal import myDataDB, myUserDB, backupDataDB, backupUserDB, init
+import copy
 
 def recv_until_prog_end(s: socket.socket):
     buffer = ""
@@ -30,6 +32,7 @@ def recv_until_prog_end(s: socket.socket):
 
 
 def handle_progs(s : socket.socket, db_con : sqlite3.Connection ,  network : nx.DiGraph):
+    global myDataDB, myUserDB, backupDataDB, backupUserDB
     ending = False
     prev = None
     while not ending:
@@ -53,13 +56,21 @@ def handle_progs(s : socket.socket, db_con : sqlite3.Connection ,  network : nx.
         
 
         if(status and status[-1].get('status') == "FAILED" or status[-1].get('status') == "DENIED"):
-            db_con.rollback()
+            #db_con.rollback()
+            myDataDB = copy.deepcopy(backupDataDB)
+            myUserDB = copy.deepcopy(backupUserDB)
         #TODO: Careful about this optimization
         elif(side_effects):
-            cursor = db_con.cursor()
+            #cursor = db_con.cursor()
             #Delete local data from DB
-            cursor.execute("DELETE FROM data WHERE scope=?", ("local",))
-            db_con.commit()
+            #Cant user .items() due to list changing size shenanigans
+            for key, value in list(myDataDB.items()):
+                if(value['scope'] == 'local'):
+                    del myDataDB[key]
+            #cursor.execute("DELETE FROM data WHERE scope=?", ("local",))
+            #db_con.commit()
+            backupDataDB = copy.deepcopy(myDataDB)
+            backupUserDB = copy.deepcopy(myUserDB)
 
             #Delete local from permissions network
             for node in network.nodes(data=True):
@@ -103,18 +114,17 @@ def get_inputs():
     return password, int(port) 
 
 def setup_db(password: str, network : nx.DiGraph ):
-    con = sqlite3.connect(':memory:')
-    cursor = con.cursor()
-    cursor.execute("create table data(name TEXT, value TEXT, scope, TEXT)")
-    cursor.execute("create table users(user TEXT, password TEXT)")
-    cursor.execute("insert into users(user, password) values (?, ?)", ("admin", password))
+    global myDataDB, myUserDB, backupDataDB, backupUserDB
+    init()
+    myUserDB["admin"] = password
+    myUserDB["anyone"] = "@"
     #Anyone is given a password that can not ever be input.  Admin can change this later if they choose to.
-    cursor.execute("insert into users(user, password) values (?, ?)", ("anyone", "@"))
-    con.commit()
+    backupDataDB = copy.deepcopy(myDataDB)
+    backupUserDB  = copy.deepcopy(myUserDB)
     network.add_node("admin")
     network.add_node("anyone")
     network.add_node("@default", value="anyone")
-    return con
+    return None
 
 
 if __name__=="__main__":

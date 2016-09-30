@@ -7,4 +7,3 @@ foreach rec in names replacewith rec.name
 local rec = ""
 return names
 ***
-//['mike', 'dave']
