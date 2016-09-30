@@ -34,15 +34,21 @@ def handle_progs(s : socket.socket, db_con : sqlite3.Connection ,  network : nx.
     prev = None
     while not ending:
         conn, addr = s.accept()
+        conn.settimeout(30)
 
-        start = time.time()
+        try:
+            data = recv_until_prog_end(conn)
+        except socket.timeout as e:
+            conn.send(str({"status":"TIMEOUT"}).encode("ascii"))
+            continue
 
-        data = recv_until_prog_end(conn)
-        #with open("log.txt", "w") as f: f.write(data)
-        #print("RECV:\n" + data)
-        #if(prev != data):
+        #import cProfile, pstats, sys
+        #pr = cProfile.Profile()
+        #pr.enable()
         network, status, ending, side_effects = run_program(db_con, data, network)
-        #    prev = data
+        #pr.disable()
+        #ps = pstats.Stats(pr, stream=sys.stdout)
+        #ps.print_stats()
 
         
 
@@ -63,11 +69,8 @@ def handle_progs(s : socket.socket, db_con : sqlite3.Connection ,  network : nx.
 
         status = [json.dumps(x) for x in status]
         send_status = "\n".join(status)
-        #print("SEND:\n" + send_status)
         conn.send(send_status.encode('utf-8'))
         conn.close()
-        end = time.time()
-        print("time:" + str(end-start))
             
             
 

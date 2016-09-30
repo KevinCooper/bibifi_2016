@@ -13,5 +13,6 @@ if __name__=="__main__":
             s.sendall(f.read().encode('ascii'))
             print("GOT:")
             x = s.recv(1024*1024*1024).decode('ascii')
-            print(x[0:1000])
+            print(x[:100])
+            print(x[-100:])
             print("")
