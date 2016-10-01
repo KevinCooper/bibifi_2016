@@ -90,7 +90,7 @@ lexer = lex.lex()
 
 class MyLexer(object):
     def __init__(self, debug=0, optimize=1, lextab='lextab', reflags=0, outputdir="/tmp/"):
-        self.lexer = lex.lex(debug=debug, optimize=optimize, lextab=lextab, reflags=reflags, outputdir="/tmp/")
+        self.lexer = lex.lex(debug=debug, optimize=optimize, lextab=lextab, reflags=reflags, outputdir=outputdir)
         self.token_stream = None
     def input(self, s):
         self.lexer.paren_count = 0
