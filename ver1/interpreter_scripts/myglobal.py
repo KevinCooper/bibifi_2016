@@ -2,7 +2,7 @@
 #For record data
 #{"name": {"name":name, "data":{"name":"string"}, "scope":scope, "type":type} }
 import copy
-import ujson
+import cpickle
 class DB:
     def __init__(self):
         self.myDataDB = {}
@@ -26,12 +26,12 @@ class DB:
         self.myDataDB.pop(name)
 
     def revert(self):
-        self.myUserDB = ujson.loads(self.backupUserDB)
-        self.myDataDB = ujson.loads(self.backupDataDB)
+        self.myUserDB = cpickle.loads(self.backupUserDB)
+        self.myDataDB = cpickle.loads(self.backupDataDB)
 
     def commit(self):
-        self.backupUserDB = ujson.dumps(self.myUserDB)
-        self.backupDataDB = ujson.dumps(self.myDataDB)
+        self.backupUserDB = cpickle.dumps(self.myUserDB)
+        self.backupDataDB = cpickle.dumps(self.myDataDB)
 
     def clearLocals(self):
         for key, value in list(self.myDataDB.items()):
