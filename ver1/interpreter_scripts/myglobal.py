@@ -2,7 +2,7 @@
 #For record data
 #{"name": {"name":name, "data":{"name":"string"}, "scope":scope, "type":type} }
 import copy
-import cpickle
+import pickle
 class DB:
     def __init__(self):
         self.myDataDB = {}
@@ -26,12 +26,12 @@ class DB:
         self.myDataDB.pop(name)
 
     def revert(self):
-        self.myUserDB = cpickle.loads(self.backupUserDB)
-        self.myDataDB = cpickle.loads(self.backupDataDB)
+        self.myUserDB = pickle.loads(self.backupUserDB)
+        self.myDataDB = pickle.loads(self.backupDataDB)
 
     def commit(self):
-        self.backupUserDB = cpickle.dumps(self.myUserDB)
-        self.backupDataDB = cpickle.dumps(self.myDataDB)
+        self.backupUserDB = pickle.dumps(self.myUserDB)
+        self.backupDataDB = pickle.dumps(self.myDataDB)
 
     def clearLocals(self):
         for key, value in list(self.myDataDB.items()):
