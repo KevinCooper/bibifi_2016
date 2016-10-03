@@ -12,7 +12,7 @@ from interpreter_scripts.errors import *
 import networkx as nx
 import time
 import glob
-import ujson as json
+import json
 from interpreter_scripts.myglobal import DB
 import copy
 
